@@ -161,63 +161,24 @@
             document.getElementById('divCategorias').innerHTML = htmlCat;
             renderizarProductos(productos);
         }
-
-        function filtrarCat(cat, btn) {
-            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
-            btn.classList.add('active');
-            renderizarProductos(cat === 'Todos' ? productos : productos.filter(p => p.categoria === cat));
-        }
-
+        function filtrarCat(cat, btn) { document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderizarProductos(cat === 'Todos' ? produits : produits.filter(p => p.categoria === cat)); }
         function renderizarProductos(prods) {
             let html = '';
-            prods.forEach(p => {
-                let alertaStock = (p.stock === 0) ? '<div class="prod-stock">AGOTADO</div>' : '';
-                html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}"><div class="prod-name">${p.nombre}</div><div class="prod-price">$${p.precio.toFixed(2)}</div>${alertaStock}</div>`;
-            });
+            prods.forEach(p => { let a = (p.stock === 0) ? '<div class="prod-stock">AGOTADO</div>' : ''; html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}"><div class="prod-name">${p.nombre}</div><div class="prod-price">$${p.precio.toFixed(2)}</div>${a}</div>`; });
             document.getElementById('divProductos').innerHTML = html;
         }
-
-        function agregarAlCarrito(id) {
-            let prod = productos.find(p => p.id === id);
-            if (prod.stock === 0) return alert('Producto agotado');
-            let existe = carrito.find(c => c.id === id);
-            if (existe) existe.cantidad++; else carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, cantidad: 1 });
-            if(prod.stock > 0) prod.stock--;
-            actualizarVistaCarrito();
-        }
-
-        function modificarCarrito(id, accion) {
-            let index = carrito.findIndex(c => c.id === id); if (index === -1) return;
-            let item = carrito[index]; let prod = productos.find(p => p.id === id);
-            if (accion === 'resta') { if(prod && prod.stock >= 0) prod.stock++; item.cantidad--; if (item.cantidad <= 0) carrito.splice(index, 1); }
-            else if (accion === 'suma') { if (prod && prod.stock === 0) return alert('Producto agotado'); if (prod && prod.stock > 0) prod.stock--; item.cantidad++; }
-            abrirCarrito();
-        }
-
-        function actualizarVistaCarrito() {
-            let count = carrito.reduce((t, i) => t + i.cantidad, 0);
-            let total = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0);
-            document.getElementById('txtCountCarrito').innerText = count;
-            document.getElementById('txtTotalCarrito').innerText = total.toFixed(2);
-        }
-
+        function agregarAlCarrito(id) { let p = productos.find(x => x.id === id); if (p.stock === 0) return alert('Agotado'); let e = carrito.find(x => x.id === id); if (e) e.cantidad++; else carrito.push({ id: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }); if(p.stock > 0) p.stock--; actualizarVistaCarrito(); }
+        function modificarCarrito(id, accion) { let i = carrito.findIndex(x => x.id === id); if (i === -1) return; let it = carrito[i], p = productos.find(x => x.id === id); if (accion === 'resta') { if(p && p.stock >= 0) p.stock++; it.cantidad--; if (it.cantidad <= 0) carrito.splice(i, 1); } else { if (p && p.stock === 0) return alert('Agotado'); if (p && p.stock > 0) p.stock--; it.cantidad++; } abrirCarrito(); }
+        function actualizarVistaCarrito() { document.getElementById('txtCountCarrito').innerText = carrito.reduce((t, i) => t + i.cantidad, 0); document.getElementById('txtTotalCarrito').innerText = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0).toFixed(2); }
         function abrirCarrito() {
             descuentoAplicado = false; document.getElementById('divInfoDescuento').style.display = 'none';
-            let html = '', total = 0;
-            carrito.forEach(i => { let sub = i.precio * i.cantidad; total += sub; html += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'resta')">-</button><div class="item-detalle"><div>${i.nombre}</div><div style="font-size:12px; color:#666;">$${i.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${i.cantidad}x $${sub.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'suma')">+</button></div>`; });
-            document.getElementById('listaCarrito').innerHTML = html;
-            document.getElementById('txtTotalModal').innerText = total.toFixed(2);
-            abrirModal('modalCarrito');
+            let h = '', t = 0;
+            carrito.forEach(i => { let s = i.precio * i.cantidad; t += s; h += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'resta')">-</button><div class="item-detalle"><div>${i.nombre}</div><div style="font-size:12px; color:#666;">$${i.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${i.cantidad}x $${s.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'suma')">+</button></div>`; });
+            document.getElementById('listaCarrito').innerHTML = h; document.getElementById('txtTotalModal').innerText = t.toFixed(2); abrirModal('modalCarrito');
         }
-
         function aplicarDescuentoEmpleado() {
-            let num = prompt("Número de empleado:"); if (!num) return;
-            if (config.empleados.includes(num)) {
-                descuentoAplicado = true; document.getElementById('divInfoDescuento').style.display = 'block';
-                document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% (Emp: ${num})`;
-                let t = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0);
-                document.getElementById('txtTotalModal').innerText = (t - (t * (config.descuentoEmp / 100))).toFixed(2);
-            } else alert("❌ Empleado no registrado.");
+            let n = prompt("Número de empleado:"); if (!n) return;
+            if (config.empleados.includes(n)) { descuentoAplicado = true; document.getElementById('divInfoDescuento').style.display = 'block'; document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% (Emp: ${n})`; let t = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0); document.getElementById('txtTotalModal').innerText = (t - (t * (config.descuentoEmp / 100))).toFixed(2); } else alert("❌ No registrado.");
         }
 
         function finalizarVenta(metodo) {
@@ -227,8 +188,17 @@
             if (descuentoAplicado) { total = total - (total * (config.descuentoEmp / 100)); msg += ` (Descuento)`; }
             let com = 0; if (metodo === 'Tarjeta') com = total * (config.comisionMP / 100);
             let hist = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
-            hist.push({ fecha: new Date().toISOString(), items: carrito.map(i => `${i.cantidad}x ${i.nombre}`), totalCobrado: total, metodo, comisionMP: com });
+            
+            // NUEVA FORMA DE GUARDAR: Guardamos objetos para poder sacar el sub-total en el PDF
+            hist.push({
+                fecha: new Date().toISOString(), 
+                items: carrito.map(i => ({n: i.nombre, c: i.cantidad, p: i.precio})), 
+                totalCobrado: total, 
+                metodo, 
+                comisionMP: com
+            });
             localStorage.setItem('historialVentasCafe', JSON.stringify(hist));
+            
             let tkt = `☕ *Café jardín el Virreinal*\n📍 Museo de Arte Virreinal de Taxco\n\n`;
             carrito.forEach(i => tkt += `${i.cantidad}x ${i.nombre} ..... $${(i.precio * i.cantidad).toFixed(2)}\n`);
             tkt += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${msg}\n\n"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
@@ -236,175 +206,123 @@
             carrito = []; actualizarVistaCarrito(); cerrarModal('modalCarrito');
         }
 
-        function pedirPinAdmin() {
-            if (prompt("PIN:") === config.pin) {
-                document.getElementById('inputComision').value = config.comisionMP;
-                document.getElementById('inputDescuento').value = config.descuentoEmp;
-                document.getElementById('inputEmpleados').value = config.empleados.join(', ');
-                document.getElementById('inputNuevoPin').value = '';
-                abrirModal('modalAdmin');
-            } else alert("PIN incorrecto");
-        }
-
-        function guardarConfigAdmin() {
-            config.comisionMP = parseFloat(document.getElementById('inputComision').value) || 3.99;
-            config.descuentoEmp = parseInt(document.getElementById('inputDescuento').value) || 15;
-            config.empleados = document.getElementById('inputEmpleados').value.split(',').map(e => e.trim());
-            let p = document.getElementById('inputNuevoPin').value; if (p.length >= 4) config.pin = p;
-            localStorage.setItem('configCafe', JSON.stringify(config));
-            alert("✅ Configuración guardada."); cerrarModal('modalAdmin');
-        }
-
+        function pedirPinAdmin() { if (prompt("PIN:") === config.pin) { document.getElementById('inputComision').value = config.comisionMP; document.getElementById('inputDescuento').value = config.descuentoEmp; document.getElementById('inputEmpleados').value = config.empleados.join(', '); document.getElementById('inputNuevoPin').value = ''; abrirModal('modalAdmin'); } else alert("PIN incorrecto"); }
+        function guardarConfigAdmin() { config.comisionMP = parseFloat(document.getElementById('inputComision').value) || 3.99; config.descuentoEmp = parseInt(document.getElementById('inputDescuento').value) || 15; config.empleados = document.getElementById('inputEmpleados').value.split(',').map(e => e.trim()); let p = document.getElementById('inputNuevoPin').value; if (p.length >= 4) config.pin = p; localStorage.setItem('configCafe', JSON.stringify(config)); alert("✅ Guardado."); cerrarModal('modalAdmin'); }
+        
         function abrirGestionProductos() { cerrarModal('modalAdmin'); actualizarSelectCategorias(); renderizarAdminProductos(); abrirModal('modalProductos'); }
-        function agregarCategoria() {
-            let nom = document.getElementById('inputNuevaCat').value.trim(); if (!nom) return alert("Escribe un nombre");
-            productos.push({ id: Date.now(), nombre: `_[BORRAR]_${nom}`, precio: 0, categoria: nom, stock: -1 });
-            guardarProductos(); document.getElementById('inputNuevaCat').value = ''; actualizarSelectCategorias(); renderizarAdminProductos();
-        }
-        function actualizarSelectCategorias() {
-            let cats = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_'));
-            document.getElementById('selectFiltroCat').innerHTML = '<option value="Todos">Todas</option>' + cats.map(c => `<option value="${c}">${c}</option>`).join('');
-        }
-        function renderizarAdminProductos() {
-            let filtro = document.getElementById('selectFiltroCat').value;
-            let prods = productos.filter(p => !p.nombre.startsWith('_[BORRAR]_'));
-            if (filtro !== 'Todos') prods = prods.filter(p => p.categoria === filtro);
-            let html = '';
-            prods.forEach(p => {
-                let stockTxt = (p.stock > 0) ? ` | Stock: ${p.stock}` : (p.stock === 0) ? ' | AGOTADO' : '';
-                html += `<div class="admin-prod-item"><div class="admin-prod-info"><div style="font-weight:bold;">${p.nombre}</div><div style="font-size:12px; color:#666;">$${p.precio.toFixed(2)} - ${p.categoria}${stockTxt}</div></div><div class="admin-prod-btns"><button class="btn-sm btn-edit" onclick="mostrarFormularioProducto(${p.id})">✏️</button><button class="btn-sm btn-del" onclick="eliminarProducto(${p.id})">🗑️</button></div></div>`;
-            });
-            document.getElementById('listaAdminProductos').innerHTML = html || '<div style="text-align:center;color:#666;">No hay productos aquí</div>';
-        }
+        function agregarCategoria() { let n = document.getElementById('inputNuevaCat').value.trim(); if (!n) return alert("Escribe un nombre"); productos.push({ id: Date.now(), nombre: `_[BORRAR]_${n}`, precio: 0, categoria: n, stock: -1 }); guardarProductos(); document.getElementById('inputNuevaCat').value = ''; actualizarSelectCategorias(); renderizarAdminProductos(); }
+        function actualizarSelectCategorias() { let c = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_')); document.getElementById('selectFiltroCat').innerHTML = '<option value="Todos">Todas</option>' + c.map(x => `<option value="${x}">${x}</option>`).join(''); }
+        function renderizarAdminProductos() { let f = document.getElementById('selectFiltroCat').value; let p = produits.filter(p => !p.nombré.startsWith('_[BORRAR]_')); if (f !== 'Todos') p = p.filter(x => x.categoria === f); let h = ''; p.forEach(p => { let s = (p.stock > 0) ? ` | Stock: ${p.stock}` : (p.stock === 0) ? ' | AGOTADO' : ''; h += `<div class="admin-prod-item"><div class="admin-prod-info"><div style="font-weight:bold;">${p.nombre}</div><div style="font-size:12px; color:#666;">$${p.precio.toFixed(2)} - ${p.categoria}${s}</div></div><div class="admin-prod-btns"><button class="btn-sm btn-edit" onclick="mostrarFormularioProducto(${p.id})">✏️</button><button class="btn-sm btn-del" onclick="eliminarProducto(${p.id})">🗑️</button></div></div>`; }); document.getElementById('listaAdminProductos').innerHTML = h || '<div style="text-align:center;color:#666;">Vacío</div>'; }
         function toggleInputStock() { document.getElementById('inputProdStock').style.display = document.getElementById('checkStock').checked ? 'block' : 'none'; }
-        function mostrarFormularioProducto(id = null) {
-            document.getElementById('editProdId').value = id || '';
-            document.getElementById('tituloFormProd').innerText = id ? 'Editar Producto' : 'Nuevo Producto';
-            let cats = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_'));
-            document.getElementById('selectProdCat').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
-            if (id) { let p = productos.find(pr => pr.id === id); document.getElementById('inputProdNombre').value = p.nombre; document.getElementById('inputProdPrecio').value = p.precio; document.getElementById('selectProdCat').value = p.categoria; document.getElementById('checkStock').checked = (p.stock >= 0); document.getElementById('inputProdStock').value = (p.stock >= 0) ? p.stock : 0; }
-            else { document.getElementById('inputProdNombre').value = ''; document.getElementById('inputProdPrecio').value = ''; document.getElementById('checkStock').checked = false; document.getElementById('inputProdStock').value = 0; }
-            toggleInputStock(); abrirModal('modalFormProd');
-        }
-        function guardarProducto() {
-            let nom = document.getElementById('inputProdNombre').value.trim(); let pre = parseFloat(document.getElementById('inputProdPrecio').value); let cat = document.getElementById('selectProdCat').value;
-            let chk = document.getElementById('checkStock').checked; let stk = chk ? parseInt(document.getElementById('inputProdStock').value) || 0 : -1; let id = document.getElementById('editProdId').value;
-            if (!nom || !pre) return alert("Nombre y Precio son obligatorios");
-            if (id) { let p = productos.find(pr => pr.id == id); p.nombre = nom; p.precio = pre; p.categoria = cat; p.stock = stk; }
-            else { let nuevoId = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1; productos.push({ id: nuevoId, nombre: nom, precio: pre, categoria: cat, stock: stk }); }
-            guardarProductos(); cerrarModal('modalFormProd'); actualizarSelectCategorias(); renderizarAdminProductos();
-        }
-        function eliminarProducto(id) { if (confirm("¿Seguro de ELIMINAR este producto?")) { productos = productos.filter(p => p.id !== id); guardarProductos(); renderizarAdminProductos(); } }
+        function mostrarFormularioProducto(id = null) { document.getElementById('editProdId').value = id || ''; document.getElementById('tituloFormProd').innerText = id ? 'Editar' : 'Nuevo'; let c = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_')); document.getElementById('selectProdCat').innerHTML = c.map(x => `<option value="${x}">${x}</option>`).join(''); if (id) { let p = produits.find(x => x.id === id); document.getElementById('inputProdNombre').value = p.nombre; document.getElementById('inputProdPrecio').value = p.precio; document.getElementById('selectProdCat').value = p.categoria; document.getElementById('checkStock').checked = (p.stock >= 0); document.getElementById('inputProdStock').value = (p.stock >= 0) ? p.stock : 0; } else { document.getElementById('inputProdNombre').value = ''; document.getElementById('inputProdPrecio').value = ''; document.getElementById('checkStock').checked = false; document.getElementById('inputProdStock').value = 0; } toggleInputStock(); abrirModal('modalFormProd'); }
+        function guardarProducto() { let n = document.getElementById('inputProdNombre').value.trim(), p = parseFloat(document.getElementById('inputProdPrecio').value), c = document.getElementById('selectProdCat').value, ch = document.getElementById('checkStock').checked, s = ch ? parseInt(document.getElementById('inputProdStock').value) || 0 : -1, id = document.getElementById('editProdId').value; if (!n || !p) return alert("Nombre y Precio obligatorios"); if (id) { let x = produits.find(pr => pr.id == id); x.nombre = n; x.precio = p; x.categoria = c; x.stock = s; } else { let nid = produits.length > 0 ? Math.max(...produits.map(p => p.id)) + 1 : 1; produits.push({ id: nid, nombre: n, precio: p, categoria: c, stock: s }); } guardarProductos(); cerrarModal('modalFormProd'); actualizarSelectCategorias(); renderizarAdminProductos(); }
+        function eliminarProducto(id) { if (confirm("¿ELIMINAR?")) { produits = produits.filter(p => p.id !== id); guardarProductos(); renderizarAdminProductos(); } }
         function guardarProductos() { localStorage.setItem('productosCafe', JSON.stringify(productos)); renderizarTodo(); }
 
-        // --- FUNCIÓN PDF CORTE DE CAJA (TAMAÑO CARTA Y TABLAS) ---
+        // --- NUEVO PDF CORRECTO ---
         function verCorteCaja() {
             cerrarModal('modalAdmin');
             let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
-            if (!historial.length) return alert("No hay ventas registradas hoy.");
-            
+            if (!historial.length) return alert("No hay ventas.");
+
             let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0;
-            historial.forEach(v => { if (v.metodo === 'Efectivo') totalEfectivo += v.totalCobrado; else { totalTarjeta += v.totalCobrado; totalComision += v.comisionMP; } });
+            historial.forEach(v => {
+                if (v.metodo === 'Efectivo') totalEfectivo += v.totalCobrado;
+                else { totalTarjeta += v.totalCobrado; totalComision += v.comisionMP; }
+            });
             let totalGeneral = totalEfectivo + totalTarjeta; 
             let depositoReal = totalTarjeta - totalComision;
-            let cantidadVentas = historial.length;
 
-            // Agrupar productos
+            // Agrupar y SUMAR por producto usando los objetos guardados
             let resumenProductos = {};
-            historial.forEach(v => v.items.forEach(item => { resumenProductos[item] = (resumenProductos[item] || 0) + 1; }));
+            historial.forEach(v => {
+                v.items.forEach(item => {
+                    if (!resumenProductos[item.n]) {
+                        resumenProductos[item.n] = { cantidad: 0, subtotal: 0 };
+                    }
+                    resumenProductos[item.n].cantidad += item.c;
+                    resumenProductos[item.n].subtotal += (item.c * item.p);
+                });
+            });
 
-            // Crear diseño HTML para el PDF
             let div = document.createElement('div');
-            div.style.cssText = 'width: 216mm; font-family: Arial, sans-serif; padding: 20px; color: #333; background: white;';
+            // OBLIGATORIO: Ancho fijo menor al de la carta para que no se corte
+            div.style.cssText = 'width: 190mm; padding: 10mm; font-family: Arial; font-size: 11px; color: #333;';
             
+            let filasProductos = '';
+            Object.keys(resumenProductos).sort().forEach(nombre => {
+                let datos = resumenProductos[nombre];
+                filasProductos += `
+                    <tr>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; font-size: 11px;">${nombre}</td>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: center; font-size: 11px;">${datos.cantidad}</td>
+                        <td style="padding: 6px 8px; border-bottom: 1px solid #eee; text-align: right; font-size: 11px; font-weight: bold;">$ ${datos.subtotal.toFixed(2)}</td>
+                    </tr>`;
+            });
+
             div.innerHTML = `
-                <div style="text-align: center; border-bottom: 3px solid #3C2415; padding-bottom: 20px; margin-bottom: 30px;">
-                    <img src="icono.png" style="width: 100px; height: 100px; border-radius: 50%; margin-bottom: 15px;" onerror="this.style.display='none'">
-                    <h1 style="margin: 0; color: #3C2415; font-size: 28px;">Café Jardín El Virreinal</h1>
-                    <p style="margin: 5px 0; font-size: 16px;">Museo de Arte Virreinal de Taxco</p>
-                    <h2 style="margin: 20px 0 5px 0; font-size: 22px;">REPORTE DE CORTE DE CAJA</h2>
-                    <p style="margin: 0; font-size: 16px; color: #666;">Fecha: ${new Date().toLocaleDateString()} | Hora: ${new Date().toLocaleTimeString()} | Total de transacciones: ${cantidadVentas}</p>
+                <div style="text-align: center; border-bottom: 2px solid #3C2415; padding-bottom: 15px; margin-bottom: 20px;">
+                    <img src="icono.png" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;" onerror="this.style.display='none'">
+                    <h1 style="margin: 0; color: #3C2415; font-size: 22px;">Café Jardín El Virreinal</h1>
+                    <p style="margin: 5px 0; font-size: 12px; color: #666;">Museo de Arte Virreinal de Taxco</p>
+                    <p style="margin: 15px 0 5px 0; font-weight: bold; font-size: 16px;">CORTE DE CAJA</p>
+                    <p style="margin: 0; font-size: 12px;">${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()} | Transacciones: ${historial.length}</p>
                 </div>
                 
-                <h3 style="font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">🧾 DESGLOSE DE PRODUCTOS VENDIDOS</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 30px; font-size: 14px;">
+                <table style="width: 100%; border-collapse: collapse; margin-bottom: 20px;">
                     <thead>
                         <tr style="background-color: #3C2415; color: white;">
-                            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Producto</th>
-                            <th style="padding: 10px; text-align: center; border: 1px solid #ddd;">Cantidad</th>
+                            <th style="padding: 8px; text-align: left; width: 60%;">Concepto</th>
+                            <th style="padding: 8px; text-align: center; width: 15%;">Cant</th>
+                            <th style="padding: 8px; text-align: right; width: 25%;">Importe</th>
                         </tr>
                     </thead>
                     <tbody>
-                        ${Object.keys(resumenProductos).sort().map((p, index) => `
-                            <tr style="background-color: ${index % 2 === 0 ? '#f9f9f9' : 'white'};">
-                                <td style="padding: 10px; border: 1px solid #ddd;">${p}</td>
-                                <td style="padding: 10px; text-align: center; border: 1px solid #ddd; font-weight: bold;">${resumenProductos[p]}</td>
-                            </tr>
-                        `).join('')}
+                        ${filasProductos}
                     </tbody>
                 </table>
 
-                <h3 style="font-size: 18px; border-bottom: 1px solid #ccc; padding-bottom: 5px;">💰 RESUMEN FINANCIERO</h3>
-                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; font-size: 14px;">
-                    <thead>
-                        <tr style="background-color: #4E6B45; color: white;">
-                            <th style="padding: 10px; text-align: left; border: 1px solid #ddd;">Concepto</th>
-                            <th style="padding: 10px; text-align: right; border: 1px solid #ddd;">Monto</th>
-                        </tr>
-                    </thead>
-                    <tbody>
-                        <tr>
-                            <td style="padding: 10px; border: 1px solid #ddd;">Ventas en Efectivo</td>
-                            <td style="padding: 10px; text-align: right; border: 1px solid #ddd; color: #2E7D32; font-weight: bold;">$ ${totalEfectivo.toFixed(2)}</td>
-                        </tr>
-                        <tr style="background-color: #f9f9f9;">
-                            <td style="padding: 10px; border: 1px solid #ddd;">Ventas con Tarjeta (Bruto)</td>
-                            <td style="padding: 10px; text-align: right; border: 1px solid #ddd; color: #1565C0; font-weight: bold;">$ ${totalTarjeta.toFixed(2)}</td>
-                        </tr>
-                        <tr style="border-top: 3px solid black;">
-                            <td style="padding: 15px 10px; border: 1px solid #ddd; font-size: 18px; font-weight: bold;">TOTAL GENERAL DE VENTAS</td>
-                            <td style="padding: 15px 10px; text-align: right; border: 1px solid #ddd; font-size: 18px; font-weight: bold;">$ ${totalGeneral.toFixed(2)}</td>
-                        </tr>
-                    </tbody>
+                <table style="width: 100%; border-collapse: collapse; margin-top: 10px; margin-bottom: 20px;">
+                    <tr>
+                        <td style="padding: 8px; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ccc;">VENTAS EN EFECTIVO</td>
+                        <td style="padding: 8px; text-align: right; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ccc; color: #2E7D32;">$ ${totalEfectivo.toFixed(2)}</td>
+                    </tr>
+                    <tr>
+                        <td style="padding: 8px; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ccc;">VENTAS CON TARJETA</td>
+                        <td style="padding: 8px; text-align: right; font-size: 13px; font-weight: bold; border-bottom: 1px solid #ccc; color: #1565C0;">$ ${totalTarjeta.toFixed(2)}</td>
+                    </tr>
+                    <tr style="background-color: #f0f0f0;">
+                        <td style="padding: 10px; font-size: 16px; font-weight: bold;">TOTAL DEL DÍA</td>
+                        <td style="padding: 10px; text-align: right; font-size: 16px; font-weight: bold;">$ ${totalGeneral.toFixed(2)}</td>
+                    </tr>
                 </table>
 
-                <div style="background-color: #e3f2fd; border: 1px solid #90caf9; border-radius: 8px; padding: 15px; margin-top: 30px;">
-                    <h4 style="margin-top: 0; color: #0d47a1;">📉 DETALLE TARJETAS (MERCADO PAGO)</h4>
-                    <table style="width: 100%; border-collapse: collapse; font-size: 14px;">
-                        <tr>
-                            <td style="padding: 5px 0;">Total cobrado con tarjeta:</td>
-                            <td style="padding: 5px 0; text-align: right; font-weight: bold;">$ ${totalTarjeta.toFixed(2)}</td>
-                        </tr>
-                        <tr>
-                            <td style="padding: 5px 0; color: #c62828;">Comisión descontada (${config.comisionMP}%):</td>
-                            <td style="padding: 5px 0; text-align: right; color: #c62828; font-weight: bold;">- $ ${totalComision.toFixed(2)}</td>
-                        </tr>
-                        <tr style="border-top: 2px dashed #0d47a1;">
-                            <td style="padding: 10px 0; font-size: 16px; font-weight: bold; color: #0d47a1;">A DEPOSITAR A TU CUENTA:</td>
-                            <td style="padding: 10px 0; text-align: right; font-size: 16px; font-weight: bold; color: #0d47a1;">$ ${depositoReal.toFixed(2)}</td>
-                        </tr>
-                    </table>
+                <div style="border: 1px dashed #1565C0; padding: 12px; background-color: #f4f8ff; margin-bottom: 20px; border-radius: 5px;">
+                    <div style="font-weight: bold; margin-bottom: 8px; color: #1565C0; font-size: 12px;">DETALLE TARJETA (MERCADO PAGO)</div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px;"><span>Total cobrado:</span> <span>$ ${totalTarjeta.toFixed(2)}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 11px; color: #c62828;"><span>Comisión descontada (${config.comisionMP}%):</span> <span>- $ ${totalComision.toFixed(2)}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-size: 13px; font-weight: bold; margin-top: 8px; border-top: 1px solid #ccc; padding-top: 8px; color: #1565C0;"><span>A DEPOSITAR A CUENTA:</span> <span>$ ${depositoReal.toFixed(2)}</span></div>
                 </div>
 
-                <div style="background-color: #e8f5e9; border: 2px solid #2E7D32; border-radius: 8px; padding: 20px; margin-top: 30px; text-align: center;">
-                    <div style="font-size: 16px; font-weight: bold; color: #1b5e20;">💵 EN CAJA FÍSICA DEBES TENER:</div>
-                    <div style="font-size: 36px; font-weight: bold; color: #2E7D32; margin: 10px 0;">$ ${totalEfectivo.toFixed(2)}</div>
+                <div style="border: 3px double #3C2415; padding: 15px; text-align: center; background-color: #fffdf5;">
+                    <div style="font-size: 13px; font-weight: bold;">💵 EN CAJA FÍSICA DEBES TENER:</div>
+                    <div style="font-size: 26px; font-weight: bold; color: #2E7D32; margin: 5px 0;">$ ${totalEfectivo.toFixed(2)}</div>
                 </div>
             `;
 
-            alert("Generando PDF Tamaño Carta, espera un momento...");
+            alert("Generando PDF...");
             
-            // Configuración de PDF Tamaño Carta
+            // Configuración exacta para que no se corte NADA
             html2pdf().from(div).set({
-                margin: 10,
-                filename: `Corte_CafeJardin_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
+                margin: 0, // Margen 0 porque nosotros controlamos el padding en el div de 190mm
+                filename: `Corte_Cafe_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`,
                 image: { type: 'jpeg', quality: 0.98 },
                 html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' } // <-- TAMAÑO CARTA
+                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' } 
             }).outputPdf('blob').then(blob => {
                 let file = new File([blob], `Corte.pdf`, {type:'application/pdf'});
                 if(navigator.canShare && navigator.canShare({files:[file]})) {
-                    navigator.share({files:[file], title:'Corte de Caja', text:'Adjunto corte del día.'}).then(() => { localStorage.removeItem('historialVentasCafe'); alert("¡Corte enviado y día reiniciado!"); }).catch(() => alert("Envío cancelado."));
+                    navigator.share({files:[file], title:'Corte de Caja', text:'Corte del día.'}).then(() => { localStorage.removeItem('historialVentasCafe'); alert("¡Corte enviado y día reiniciado!"); }).catch(() => alert("Envío cancelado."));
                 } else { html2pdf().from(div).save(); localStorage.removeItem('historialVentasCafe'); alert("PDF descargado."); }
                 div.remove();
             });
