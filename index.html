@@ -245,8 +245,34 @@
             alert("✅ Guardado."); cerrarModal('modalAdmin'); 
         }
         
-        function abrirGestionProductos() { 
+                function abrirGestionProductos() { 
             cerrarModal('modalAdmin'); 
+            
+            // --- EXORCISMO DE FANTASMAS ---
+            // 1. Borra productos invisibles de versiones pasadas
+            productos = productos.filter(p => !p.nombre.startsWith('_[BORRAR]_'));
+            
+            // 2. Busca categorías "fantasmas" (que no tengan ningún producto real asignado)
+            let categoriasLimpias = [];
+            config.categorias.forEach(cat => {
+                let tieneProductos = productos.some(p => p.categoria === cat);
+                if (tieneProductos) {
+                    categoriasLimpias.push(cat);
+                } else {
+                    // Si es "Refresco" u otra vacía, simplemente no la pasa al arreglo limpio
+                    console.log("Eliminando categoría fantasma: " + cat);
+                }
+            });
+            
+            // Si por error se borraron todas, dejamos al menos una por defecto
+            if (categoriasLimpias.length === 0) categoriasLimpias.push("General");
+            
+            // Guardamos la base de datos limpia
+            config.categorias = categoriasLimpias;
+            localStorage.setItem('configCafe', JSON.stringify(config));
+            guardarProductos();
+            // ---------------------------------
+
             renderizarAdminCategorias(); 
             actualizarSelectCategorias(); 
             renderizarAdminProductos(); 
