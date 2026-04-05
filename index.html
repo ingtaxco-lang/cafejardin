@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
+    <title>Café Jardín El Virreinal</title>
+    <style>
+        :root {
+            --color-fondo: #F9F6F2;
+            --color-cafe: #3C2415;
+            --color-verde: #4E6B45;
+            --color-blanco: #FFFFFF;
+        }
+        body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--color-fondo); margin: 0; padding: 0; color: var(--color-cafe); }
+        .header { background-color: var(--color-cafe); color: var(--color-blanco); text-align: center; padding: 15px 0; font-size: 20px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
+        .admin-btn { position: absolute; left: 15px; top: 15px; background: none; border: none; color: var(--color-blanco); font-size: 12px; cursor: pointer; }
+        .categorias { display: flex; overflow-x: auto; background: var(--color-blanco); padding: 10px; gap: 10px; }
+        .cat-btn { padding: 8px 15px; border-radius: 20px; border: 1px solid var(--color-cafe); background: var(--color-blanco); color: var(--color-cafe); font-weight: bold; white-space: nowrap; cursor: pointer; }
+        .cat-btn.active { background-color: var(--color-cafe); color: var(--color-blanco); }
+        .productos { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; padding: 10px; padding-bottom: 100px; }
+        .prod-card { background: var(--color-blanco); border-radius: 10px; padding: 15px; text-align: center; box-shadow: 0 2px 5px rgba(0,0,0,0.05); cursor: pointer; border: 2px solid transparent; }
+        .prod-card:active { border-color: var(--color-verde); }
+        .prod-name { font-size: 16px; font-weight: bold; margin-bottom: 5px; }
+        .prod-price { font-size: 18px; color: var(--color-verde); font-weight: bold; }
+        .prod-stock { font-size: 11px; color: red; }
+        
+        .carrito-bar { position: fixed; bottom: 0; left: 0; right: 0; background: var(--color-cafe); color: var(--color-blanco); padding: 15px; display: flex; justify-content: space-between; align-items: center; box-shadow: 0 -2px 10px rgba(0,0,0,0.2); z-index: 100; }
+        .carrito-info { font-size: 18px; font-weight: bold; }
+        .btn-cobrar { background: var(--color-verde); color: var(--color-blanco); border: none; padding: 15px 30px; font-size: 18px; font-weight: bold; border-radius: 5px; cursor: pointer; }
+
+        .pantalla-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
+        .pantalla-modal.active { display: flex; }
+        .modal-contenido { background: var(--color-fondo); width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .modal-titulo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
+        .item-carrito { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        .btn-pago { width: 100%; padding: 20px; font-size: 20px; border: none; border-radius: 5px; margin-bottom: 10px; font-weight: bold; cursor: pointer; color: var(--color-blanco); }
+        .btn-efectivo { background: #2E7D32; }
+        .btn-tarjeta { background: #1565C0; }
+        .btn-descuento { background: #F57C00; margin-bottom: 20px; }
+        .input-modal { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid var(--color-cafe); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .btn-volver { background: none; border: none; color: var(--color-cafe); font-size: 16px; margin-bottom: 20px; cursor: pointer; }
+        .resumen-total { text-align: right; font-size: 24px; font-weight: bold; margin: 20px 0; }
+    </style>
+</head>
+<body>
+
+    <div class="header">
+        <button class="admin-btn" onclick="pedirPinAdmin()">⚙️ Admin</button>
+        ☕ Café Jardín
+    </div>
+
+    <div class="categorias" id="divCategorias"></div>
+    <div class="productos" id="divProductos"></div>
+
+    <div class="carrito-bar" onclick="abrirCarrito()" style="cursor: pointer;">
+        <div class="carrito-info">🛒 <span id="txtCountCarrito">0</span> items</div>
+        <div class="carrito-info">$ <span id="txtTotalCarrito">0.00</span></div>
+        <button class="btn-cobrar" onclick="event.stopPropagation(); abrirCarrito()">COBRAR</button>
+    </div>
+
+    <div class="pantalla-modal" id="modalCarrito">
+        <div class="modal-contenido">
+            <button class="btn-volver" onclick="cerrarModal('modalCarrito')">← Seguir vendiendo</button>
+            <div class="modal-titulo">Detalle de Venta</div>
+            <div id="listaCarrito"></div>
+            <div class="resumen-total">Total: $<span id="txtTotalModal">0.00</span></div>
+            
+            <button class="btn-pago btn-descuento" onclick="aplicarDescuentoEmpleado()">🏷️ Aplicar Descuento Empleado</button>
+            <div id="divInfoDescuento" style="display:none; text-align:center; color: #F57C00; margin-bottom: 10px; font-weight: bold;"></div>
+
+            <button class="btn-pago btn-efectivo" onclick="finalizarVenta('Efectivo')">💵 Cobrar con EFECTIVO</button>
+            <button class="btn-pago btn-tarjeta" onclick="finalizarVenta('Tarjeta')">💳 Cobrar con TARJETA</button>
+        </div>
+    </div>
+
+    <div class="pantalla-modal" id="modalAdmin">
+        <div class="modal-contenido">
+            <button class="btn-volver" onclick="cerrarModal('modalAdmin')">← Cerrar</button>
+            <div class="modal-titulo">⚙️ Configuración</div>
+            
+            <label>Comisión Mercado Pago (%):</label>
+            <input type="number" class="input-modal" id="inputComision" step="0.01">
+            
+            <label>Descuento Empleado (%):</label>
+            <input type="number" class="input-modal" id="inputDescuento">
+            
+            <label>Números de Empleados (separados por coma):</label>
+            <input type="text" class="input-modal" id="inputEmpleados" placeholder="Ej: 101, 102, 103">
+
+            <label>Nuevo PIN de Admin:</label>
+            <input type="password" class="input-modal" id="inputNuevoPin" placeholder="Dejar vacío para no cambiar">
+
+            <button class="btn-pago btn-efectivo" onclick="guardarConfigAdmin()">💾 Guardar Cambios</button>
+        </div>
+    </div>
+
+    <script>
+        let config = { pin: '12345', comisionMP: 3.99, descuentoEmp: 15, empleados: ['101', '102'] };
+        let productos = [
+            { id: 1, nombre: 'Americano', precio: 50, categoria: 'Calientes', stock: -1 },
+            { id: 2, nombre: 'Capuchino', precio: 70, categoria: 'Calientes', stock: -1 },
+            { id: 3, nombre: 'Latte', precio: 80, categoria: 'Calientes', stock: -1 },
+            { id: 4, nombre: 'Té Helado', precio: 45, categoria: 'Frías', stock: 20 },
+            { id: 5, nombre: 'Limonada', precio: 55, categoria: 'Frías', stock: -1 },
+            { id: 6, nombre: 'Mojito Sin Alcohol', precio: 85, categoria: 'Cocteles', stock: -1 }
+        ];
+        let carrito = [];
+        let descuentoAplicado = false;
+
+        if(localStorage.getItem('configCafe')) config = JSON.parse(localStorage.getItem('configCafe'));
+        if(localStorage.getItem('productosCafe')) productos = JSON.parse(localStorage.getItem('productosCafe'));
+
+        function renderizarTodo() {
+            let categorias = [...new Set(productos.map(p => p.categoria))];
+            let htmlCat = `<button class="cat-btn active" onclick="filtrarCat('Todos', this)">Todos</button>`;
+            categorias.forEach(c => htmlCat += `<button class="cat-btn" onclick="filtrarCat('${c}', this)">${c}</button>`);
+            document.getElementById('divCategorias').innerHTML = htmlCat;
+            renderizarProductos(productos);
+        }
+
+        function filtrarCat(cat, btn) {
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active'));
+            btn.classList.add('active');
+            renderizarProductos(cat === 'Todos' ? productos : productos.filter(p => p.categoria === cat));
+        }
+
+        function renderizarProductos(prods) {
+            let html = '';
+            prods.forEach(p => {
+                let alertaStock = (p.stock === 0) ? '<div class="prod-stock">AGOTADO</div>' : '';
+                html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}">
+                    <div class="prod-name">${p.nombre}</div>
+                    <div class="prod-price">$${p.precio.toFixed(2)}</div>${alertaStock}</div>`;
+            });
+            document.getElementById('divProductos').innerHTML = html;
+        }
+
+        function agregarAlCarrito(id) {
+            let prod = productos.find(p => p.id === id);
+            if (prod.stock === 0) return alert('Producto agotado');
+            let existe = carrito.find(c => c.id === id);
+            if (existe) { existe.cantidad++; } else { carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, cantidad: 1 }); }
+            if(prod.stock > 0) { prod.stock--; }
+            actualizarVistaCarrito();
+        }
+
+        function actualizarVistaCarrito() {
+            let count = carrito.reduce((total, item) => total + item.cantidad, 0);
+            let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+            document.getElementById('txtCountCarrito').innerText = count;
+            document.getElementById('txtTotalCarrito').innerText = total.toFixed(2);
+        }
+
+        function abrirCarrito() {
+            descuentoAplicado = false;
+            document.getElementById('divInfoDescuento').style.display = 'none';
+            let htmlLista = ''; let total = 0;
+            carrito.forEach(item => { let sub = item.precio * item.cantidad; total += sub; htmlLista += `<div class="item-carrito"><span>${item.cantidad}x ${item.nombre}</span><span>$${sub.toFixed(2)}</span></div>`; });
+            document.getElementById('listaCarrito').innerHTML = htmlLista;
+            document.getElementById('txtTotalModal').innerText = total.toFixed(2);
+            abrirModal('modalCarrito');
+        }
+
+        function aplicarDescuentoEmpleado() {
+            let numEmp = prompt("Ingresa el número de empleado:");
+            if (!numEmp) return;
+            if (config.empleados.includes(numEmp)) {
+                descuentoAplicado = true;
+                document.getElementById('divInfoDescuento').style.display = 'block';
+                document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% aplicado (Emp: ${numEmp})`;
+                let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+                document.getElementById('txtTotalModal').innerText = (total - (total * (config.descuentoEmp / 100))).toFixed(2);
+            } else { alert("❌ Número de empleado no registrado."); }
+        }
+
+        function finalizarVenta(metodo) {
+            let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+            let mensajeMetodo = `💵 Pagado con: ${metodo}`;
+            if (descuentoAplicado) {
+                total = total - (total * (config.descuentoEmp / 100));
+                mensajeMetodo += ` (Con descuento)`;
+            }
+
+            // --- NUEVO: GUARDAR VENTA EN MEMORIA PARA EL CORTE DE CAJA ---
+            let comisionCalculada = 0;
+            if (metodo === 'Tarjeta') { comisionCalculada = total * (config.comisionMP / 100); }
+            
+            let ventaParaGuardar = {
+                fecha: new Date().toISOString(),
+                items: carrito.map(i => `${i.cantidad}x ${i.nombre}`),
+                totalCobrado: total,
+                metodo: metodo,
+                comisionMP: comisionCalculada // Se guarda en secreto para el balance
+            };
+            let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
+            historial.push(ventaParaGuardar);
+            localStorage.setItem('historialVentasCafe', JSON.stringify(historial));
+            // -----------------------------------------------------------
+
+            // TICKET LIMPIO PARA EL CLIENTE (Sin comisiones)
+            let ticket = `☕ *Café jardín el Virreinal*\n📍 Interior del Museo de Arte Virreinal de Taxco\n\n`;
+            carrito.forEach(item => ticket += `${item.cantidad}x ${item.nombre} ..... $${(item.precio * item.cantidad).toFixed(2)}\n`);
+            ticket += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${mensajeMetodo}\n\n`;
+            ticket += `"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
+
+            window.open(`https://wa.me/?text=${encodeURIComponent(ticket)}`, '_blank');
+            carrito = [];
+            actualizarVistaCarrito();
+            cerrarModal('modalCarrito');
+        }
+
+        function pedirPinAdmin() {
+            let pinIngresado = prompt("Ingrese PIN de Administrador:");
+            if (pinIngresado === config.pin) {
+                document.getElementById('inputComision').value = config.comisionMP;
+                document.getElementById('inputDescuento').value = config.descuentoEmp;
+                document.getElementById('inputEmpleados').value = config.empleados.join(', ');
+                document.getElementById('inputNuevoPin').value = '';
+                abrirModal('modalAdmin');
+            } else { alert("PIN incorrecto"); }
+        }
+
+        function guardarConfigAdmin() {
+            config.comisionMP = parseFloat(document.getElementById('inputComision').value) || 3.99;
+            config.descuentoEmp = parseInt(document.getElementById('inputDescuento').value) || 15;
+            config.empleados = document.getElementById('inputEmpleados').value.split(',').map(e => e.trim());
+            let nuevoPin = document.getElementById('inputNuevoPin').value;
+            if (nuevoPin.length >= 4) { config.pin = nuevoPin; }
+            localStorage.setItem('configCafe', JSON.stringify(config));
+            alert("✅ Configuración guardada.");
+            cerrarModal('modalAdmin');
+        }
+
+        function abrirModal(id) { document.getElementById(id).classList.add('active'); }
+        function cerrarModal(id) { document.getElementById(id).classList.remove('active'); }
+        renderizarTodo();
+    </script>
+</body>
+</html>
