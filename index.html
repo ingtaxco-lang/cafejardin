@@ -6,7 +6,6 @@
     <meta name="theme-color" content="#3C2415">
     <link rel="manifest" href="manifest.json">
     <title>Café Jardín El Virreinal</title>
-    <!-- HERRAMIENTA PARA GENERAR PDF -->
     <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root { --color-fondo: #F9F6F2; --color-cafe: #3C2415; --color-verde: #4E6B45; --color-blanco: #FFFFFF; }
@@ -29,7 +28,7 @@
 
         .pantalla-modal { display: none; position: fixed; top: 0; left: 0; right: 0; bottom: 0; background: rgba(0,0,0,0.5); z-index: 200; justify-content: center; align-items: center; }
         .pantalla-modal.active { display: flex; }
-        .modal-contenido { background: var(--color-fondo); width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; max-height: 80vh; overflow-y: auto; }
+        .modal-contenido { background: var(--color-fondo); width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; max-height: 85vh; overflow-y: auto; }
         .modal-titulo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
         
         .item-carrito { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; gap: 10px; }
@@ -37,14 +36,30 @@
         .item-detalle { flex-grow: 1; }
         .item-subtotal { font-weight: bold; font-size: 16px; }
 
-        .btn-pago { width: 100%; padding: 20px; font-size: 20px; border: none; border-radius: 5px; margin-bottom: 10px; font-weight: bold; cursor: pointer; color: var(--color-blanco); }
+        .btn-pago { width: 100%; padding: 20px; font-size: 18px; border: none; border-radius: 5px; margin-bottom: 10px; font-weight: bold; cursor: pointer; color: var(--color-blanco); }
         .btn-efectivo { background: #2E7D32; }
         .btn-tarjeta { background: #1565C0; }
         .btn-descuento { background: #F57C00; margin-bottom: 20px; }
         .btn-corte { background: #6A1B9A; }
-        .input-modal { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid var(--color-cafe); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
+        .btn-productos { background: #D84315; }
+        
+        .input-modal { width: 100%; padding: 12px; margin-bottom: 15px; border: 1px solid var(--color-cafe); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
         .btn-volver { background: none; border: none; color: var(--color-cafe); font-size: 16px; margin-bottom: 20px; cursor: pointer; }
         .resumen-total { text-align: right; font-size: 24px; font-weight: bold; margin: 20px 0; }
+
+        /* ESTILOS PARA GESTIÓN DE PRODUCTOS */
+        .admin-prod-item { display: flex; justify-content: space-between; align-items: center; background: white; padding: 10px; border-radius: 5px; margin-bottom: 8px; }
+        .admin-prod-info { flex-grow: 1; }
+        .admin-prod-btns { display: flex; gap: 5px; }
+        .btn-sm { padding: 8px 12px; font-size: 14px; border: none; border-radius: 3px; color: white; cursor: pointer; }
+        .btn-edit { background: #1976D2; }
+        .btn-del { background: #D32F2F; }
+        .switch { position: relative; display: inline-block; width: 40px; height: 20px; }
+        .switch input { opacity: 0; width: 0; height: 0; }
+        .slider { position: absolute; cursor: pointer; top: 0; left: 0; right: 0; bottom: 0; background-color: #ccc; transition: .4s; border-radius: 20px; }
+        .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
+        input:checked + .slider { background-color: var(--color-verde); }
+        input:checked + .slider:before { transform: translateX(20px); }
     </style>
 </head>
 <body>
@@ -63,6 +78,7 @@
         <button class="btn-cobrar" onclick="event.stopPropagation(); abrirCarrito()">COBRAR</button>
     </div>
 
+    <!-- MODAL VENTA -->
     <div class="pantalla-modal" id="modalCarrito">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalCarrito')">← Seguir vendiendo</button>
@@ -76,6 +92,7 @@
         </div>
     </div>
 
+    <!-- MODAL ADMIN -->
     <div class="pantalla-modal" id="modalAdmin">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalAdmin')">← Cerrar</button>
@@ -88,8 +105,62 @@
             <input type="text" class="input-modal" id="inputEmpleados" placeholder="Ej: 101, 102, 103">
             <label>Nuevo PIN de Admin:</label>
             <input type="password" class="input-modal" id="inputNuevoPin" placeholder="Dejar vacío para no cambiar">
-            <button class="btn-pago btn-efectivo" onclick="guardarConfigAdmin()">💾 Guardar Cambios</button>
+            <button class="btn-pago btn-efectivo" onclick="guardarConfigAdmin()">💾 Guardar Configuración</button>
+            <button class="btn-pago btn-productos" onclick="abrirGestionProductos()">📦 Gestión de Productos</button>
             <button class="btn-pago btn-corte" onclick="verCorteCaja()">📊 Generar Corte en PDF</button>
+        </div>
+    </div>
+
+    <!-- MODAL GESTIÓN PRODUCTOS -->
+    <div class="pantalla-modal" id="modalProductos">
+        <div class="modal-contenido">
+            <button class="btn-volver" onclick="cerrarModal('modalProductos')">← Volver a Admin</button>
+            <div class="modal-titulo">📦 Menú de Productos</div>
+            
+            <!-- Agregar Categoría -->
+            <div style="display: flex; gap: 10px; margin-bottom: 20px;">
+                <input type="text" class="input-modal" id="inputNuevaCat" placeholder="Nueva Categoría (Ej: Postres)" style="margin-bottom: 0;">
+                <button class="btn-sm btn-edit" onclick="agregarCategoria()" style="font-size: 18px; padding: 10px;">+</button>
+            </div>
+
+            <!-- Filtro por Categoría -->
+            <select class="input-modal" id="selectFiltroCat" onchange="renderizarAdminProductos()">
+                <option value="Todos">Todas las categorías</option>
+            </select>
+
+            <div id="listaAdminProductos"></div>
+            
+            <button class="btn-pago btn-efectivo" onclick="mostrarFormularioProducto()" style="margin-top: 15px;">➕ Agregar Producto Nuevo</button>
+        </div>
+    </div>
+
+    <!-- MODAL FORMULARIO PRODUCTO -->
+    <div class="pantalla-modal" id="modalFormProd">
+        <div class="modal-contenido">
+            <button class="btn-volver" onclick="cerrarModal('modalFormProd')">← Cancelar</button>
+            <div class="modal-titulo" id="tituloFormProd">Nuevo Producto</div>
+            
+            <input type="hidden" id="editProdId">
+            <label>Nombre del Producto:</label>
+            <input type="text" class="input-modal" id="inputProdNombre" placeholder="Ej: Café Mocha">
+            
+            <label>Precio:</label>
+            <input type="number" class="input-modal" id="inputProdPrecio" placeholder="Ej: 85">
+            
+            <label>Categoría:</label>
+            <select class="input-modal" id="selectProdCat"></select>
+            
+            <div style="display: flex; justify-content: space-between; align-items: center; margin: 15px 0;">
+                <label>¿Controlar Stock?</label>
+                <label class="switch">
+                    <input type="checkbox" id="checkStock" onchange="toggleInputStock()">
+                    <span class="slider"></span>
+                </label>
+            </div>
+            
+            <input type="number" class="input-modal" id="inputProdStock" placeholder="Stock inicial" style="display:none;">
+
+            <button class="btn-pago btn-efectivo" onclick="guardarProducto()">💾 Guardar Producto</button>
         </div>
     </div>
 
@@ -108,10 +179,11 @@
         if(localStorage.getItem('configCafe')) config = JSON.parse(localStorage.getItem('configCafe'));
         if(localStorage.getItem('productosCafe')) productos = JSON.parse(localStorage.getItem('productosCafe'));
 
+        // --- LÓGICA VENTAS ---
         function renderizarTodo() {
-            let categorias = [...new Set(productos.map(p => p.categoria))];
+            let cats = [...new Set(productos.map(p => p.categoria))];
             let htmlCat = `<button class="cat-btn active" onclick="filtrarCat('Todos', this)">Todos</button>`;
-            categorias.forEach(c => htmlCat += `<button class="cat-btn" onclick="filtrarCat('${c}', this)">${c}</button>`);
+            cats.forEach(c => htmlCat += `<button class="cat-btn" onclick="filtrarCat('${c}', this)">${c}</button>`);
             document.getElementById('divCategorias').innerHTML = htmlCat;
             renderizarProductos(productos);
         }
@@ -135,204 +207,243 @@
             let prod = productos.find(p => p.id === id);
             if (prod.stock === 0) return alert('Producto agotado');
             let existe = carrito.find(c => c.id === id);
-            if (existe) { existe.cantidad++; } else { carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, cantidad: 1 }); }
-            if(prod.stock > 0) { prod.stock--; }
+            if (existe) existe.cantidad++; else carrito.push({ id: prod.id, nombre: prod.nombre, precio: prod.precio, cantidad: 1 });
+            if(prod.stock > 0) prod.stock--;
             actualizarVistaCarrito();
         }
 
         function modificarCarrito(id, accion) {
-            let index = carrito.findIndex(c => c.id === id);
-            if (index === -1) return;
+            let index = carrito.findIndex(c => c.id === id); if (index === -1) return;
             let item = carrito[index]; let prod = productos.find(p => p.id === id);
-            if (accion === 'resta') {
-                if(prod && prod.stock >= 0) prod.stock++;
-                item.cantidad--;
-                if (item.cantidad <= 0) carrito.splice(index, 1);
-            } else if (accion === 'suma') {
-                if (prod && prod.stock === 0) return alert('Producto agotado');
-                if (prod && prod.stock > 0) prod.stock--;
-                item.cantidad++;
-            }
+            if (accion === 'resta') { if(prod && prod.stock >= 0) prod.stock++; item.cantidad--; if (item.cantidad <= 0) carrito.splice(index, 1); }
+            else if (accion === 'suma') { if (prod && prod.stock === 0) return alert('Producto agotado'); if (prod && prod.stock > 0) prod.stock--; item.cantidad++; }
             abrirCarrito();
         }
 
         function actualizarVistaCarrito() {
-            let count = carrito.reduce((total, item) => total + item.cantidad, 0);
-            let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
+            let count = carrito.reduce((t, i) => t + i.cantidad, 0);
+            let total = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0);
             document.getElementById('txtCountCarrito').innerText = count;
             document.getElementById('txtTotalCarrito').innerText = total.toFixed(2);
         }
 
         function abrirCarrito() {
-            descuentoAplicado = false;
-            document.getElementById('divInfoDescuento').style.display = 'none';
-            let htmlLista = ''; let total = 0;
-            carrito.forEach(item => {
-                let sub = item.precio * item.cantidad; total += sub;
-                htmlLista += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'resta')">-</button><div class="item-detalle"><div>${item.nombre}</div><div style="font-size:12px; color:#666;">$${item.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${item.cantidad}x $${sub.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'suma')">+</button></div>`;
-            });
-            document.getElementById('listaCarrito').innerHTML = htmlLista;
+            descuentoAplicado = false; document.getElementById('divInfoDescuento').style.display = 'none';
+            let html = '', total = 0;
+            carrito.forEach(i => { let sub = i.precio * i.cantidad; total += sub; html += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'resta')">-</button><div class="item-detalle"><div>${i.nombre}</div><div style="font-size:12px; color:#666;">$${i.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${i.cantidad}x $${sub.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'suma')">+</button></div>`; });
+            document.getElementById('listaCarrito').innerHTML = html;
             document.getElementById('txtTotalModal').innerText = total.toFixed(2);
             abrirModal('modalCarrito');
         }
 
         function aplicarDescuentoEmpleado() {
-            let numEmp = prompt("Ingresa el número de empleado:");
-            if (!numEmp) return;
-            if (config.empleados.includes(numEmp)) {
-                descuentoAplicado = true;
-                document.getElementById('divInfoDescuento').style.display = 'block';
-                document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% aplicado (Emp: ${numEmp})`;
-                let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
-                document.getElementById('txtTotalModal').innerText = (total - (total * (config.descuentoEmp / 100))).toFixed(2);
-            } else { alert("❌ Número de empleado no registrado."); }
+            let num = prompt("Número de empleado:"); if (!num) return;
+            if (config.empleados.includes(num)) {
+                descuentoAplicado = true; document.getElementById('divInfoDescuento').style.display = 'block';
+                document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% (Emp: ${num})`;
+                let t = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0);
+                document.getElementById('txtTotalModal').innerText = (t - (t * (config.descuentoEmp / 100))).toFixed(2);
+            } else alert("❌ Empleado no registrado.");
         }
 
         function finalizarVenta(metodo) {
-            if(carrito.length === 0) return alert("El carrito está vacío");
-            let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
-            let mensajeMetodo = `💵 Pagado con: ${metodo}`;
-            if (descuentoAplicado) { total = total - (total * (config.descuentoEmp / 100)); mensajeMetodo += ` (Con descuento)`; }
-            let comisionCalculada = 0;
-            if (metodo === 'Tarjeta') { comisionCalculada = total * (config.comisionMP / 100); }
-            let ventaParaGuardar = { fecha: new Date().toISOString(), items: carrito.map(i => `${i.cantidad}x ${i.nombre}`), totalCobrado: total, metodo: metodo, comisionMP: comisionCalculada };
-            let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
-            historial.push(ventaParaGuardar);
-            localStorage.setItem('historialVentasCafe', JSON.stringify(historial));
-            let ticket = `☕ *Café jardín el Virreinal*\n📍 Interior del Museo de Arte Virreinal de Taxco\n\n`;
-            carrito.forEach(item => ticket += `${item.cantidad}x ${item.nombre} ..... $${(item.precio * item.cantidad).toFixed(2)}\n`);
-            ticket += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${mensajeMetodo}\n\n"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
-            window.open(`https://wa.me/?text=${encodeURIComponent(ticket)}`, '_blank');
+            if(!carrito.length) return alert("Carrito vacío");
+            let total = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0);
+            let msg = `💵 Pagado con: ${metodo}`;
+            if (descuentoAplicado) { total = total - (total * (config.descuentoEmp / 100)); msg += ` (Descuento)`; }
+            let com = 0; if (metodo === 'Tarjeta') com = total * (config.comisionMP / 100);
+            let hist = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
+            hist.push({ fecha: new Date().toISOString(), items: carrito.map(i => `${i.cantidad}x ${i.nombre}`), totalCobrado: total, metodo, comisionMP: com });
+            localStorage.setItem('historialVentasCafe', JSON.stringify(hist));
+            let tkt = `☕ *Café jardín el Virreinal*\n📍 Museo de Arte Virreinal de Taxco\n\n`;
+            carrito.forEach(i => tkt += `${i.cantidad}x ${i.nombre} ..... $${(i.precio * i.cantidad).toFixed(2)}\n`);
+            tkt += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${msg}\n\n"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
+            window.open(`https://wa.me/?text=${encodeURIComponent(tkt)}`, '_blank');
             carrito = []; actualizarVistaCarrito(); cerrarModal('modalCarrito');
         }
 
-        // --- FUNCIÓN PDF CORTE DE CAJA ---
-        function verCorteCaja() {
-            cerrarModal('modalAdmin');
-            let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
-            if (historial.length === 0) return alert("No hay ventas registradas hoy.");
-
-            // 1. Calcular totales
-            let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0;
-            historial.forEach(v => {
-                if (v.metodo === 'Efectivo') totalEfectivo += v.totalCobrado;
-                else { totalTarjeta += v.totalCobrado; totalComision += v.comisionMP; }
-            });
-            let totalGeneral = totalEfectivo + totalTarjeta;
-            let depositoReal = totalTarjeta - totalComision;
-
-            // 2. Agrupar productos vendidos
-            let resumenProductos = {};
-            historial.forEach(v => {
-                v.items.forEach(item => {
-                    resumenProductos[item] = (resumenProductos[item] || 0) + 1;
-                });
-            });
-
-            // 3. Crear el diseño visual del PDF
-            let divReporte = document.createElement('div');
-            divReporte.style.width = '300px';
-            divReporte.style.fontFamily = 'Arial, sans-serif';
-            divReporte.style.padding = '20px';
-            divReporte.style.background = 'white';
-            divReporte.style.color = 'black';
-            divReporte.innerHTML = `
-                <div style="text-align: center; border-bottom: 2px dashed #3C2415; padding-bottom: 15px; margin-bottom: 15px;">
-                    <img src="icono.png" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;" onerror="this.style.display='none'">
-                    <h2 style="margin: 0; color: #3C2415;">Café Jardín El Virreinal</h2>
-                    <p style="margin: 5px 0; font-size: 12px;">Museo de Arte Virreinal de Taxco</p>
-                    <p style="margin: 5px 0; font-weight: bold;">CORTE DE CAJA</p>
-                    <p style="margin: 0; font-size: 12px;">${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</p>
-                </div>
-                
-                <h3 style="text-align: center; font-size: 16px; margin-top: 0;">🧾 Productos Vendidos</h3>
-                <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px;">
-                    ${Object.keys(resumenProductos).map(p => `
-                        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px;">
-                            <span>${p}</span>
-                            <span style="font-weight: bold;">${resumenProductos[p]}</span>
-                        </div>
-                    `).join('')}
-                </div>
-
-                <h3 style="text-align: center; font-size: 16px;">💰 Resumen de Pagos</h3>
-                <div style="font-size: 14px;">
-                    <div style="display: flex; justify-content: space-between;"><span>Efectivo:</span><span>$${totalEfectivo.toFixed(2)}</span></div>
-                    <div style="display: flex; justify-content: space-between;"><span>Tarjeta (Bruto):</span><span>$${totalTarjeta.toFixed(2)}</span></div>
-                </div>
-
-                <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 2px solid black; font-size: 20px; font-weight: bold;">
-                    TOTAL: $${totalGeneral.toFixed(2)}
-                </div>
-
-                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 15px; font-size: 12px;">
-                    <div style="font-weight: bold; margin-bottom: 5px; color: #1565C0;">Ajuste Mercado Pago</div>
-                    <div style="display: flex; justify-content: space-between;"><span>Comisión (${config.comisionMP}%):</span><span style="color: red;">-$${totalComision.toFixed(2)}</span></div>
-                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px;"><span>A depositar a cuenta:</span><span>$${depositoReal.toFixed(2)}</span></div>
-                </div>
-
-                <div style="text-align: center; margin-top: 20px; border: 2px solid #3C2415; padding: 10px; border-radius: 5px;">
-                    <div style="font-size: 12px;">EN CAJA FÍSICA DEBES TENER:</div>
-                    <div style="font-size: 28px; font-weight: bold; color: #2E7D32;">$${totalEfectivo.toFixed(2)}</div>
-                </div>
-            `;
-
-            // 4. Generar el PDF
-            alert("Generando PDF, espera un momento...");
-            let nombreArchivo = `Corte_CafeJardin_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
-            
-            html2pdf().from(divReporte).set({
-                margin: 10,
-                filename: nombreArchivo,
-                image: { type: 'jpeg', quality: 0.98 },
-                html2canvas: { scale: 2 },
-                jsPDF: { unit: 'mm', format: [80, 250], orientation: 'portrait' } // Formato de ticket largo
-            }).outputPdf('blob').then(function(blob) {
-                
-                // 5. Compartir el archivo
-                let file = new File([blob], nombreArchivo, { type: 'application/pdf' });
-                
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({
-                        files: [file],
-                        title: 'Corte de Caja Café Jardín',
-                        text: 'Adjunto el corte de caja del día de hoy.'
-                    }).then(() => {
-                        localStorage.removeItem('historialVentasCafe');
-                        alert("¡Corte enviado y día reiniciado con éxito!");
-                    }).catch(error => {
-                        console.log("Error al compartir:", error);
-                        alert("Se canceló el envío. Las ventas siguen guardadas.");
-                    });
-                } else {
-                    // Si el celular es muy viejo y no permite compartir, lo descarga
-                    html2pdf().from(divReporte).save();
-                    localStorage.removeItem('historialVentasCafe');
-                    alert("¡PDF descargado! (Reiniciando día...)");
-                }
-                divReporte.remove(); // Limpiar memoria
-            });
-        }
-
+        // --- LÓGICA ADMIN ---
         function pedirPinAdmin() {
-            let pinIngresado = prompt("Ingrese PIN de Administrador:");
-            if (pinIngresado === config.pin) {
+            if (prompt("PIN:") === config.pin) {
                 document.getElementById('inputComision').value = config.comisionMP;
                 document.getElementById('inputDescuento').value = config.descuentoEmp;
                 document.getElementById('inputEmpleados').value = config.empleados.join(', ');
                 document.getElementById('inputNuevoPin').value = '';
                 abrirModal('modalAdmin');
-            } else { alert("PIN incorrecto"); }
+            } else alert("PIN incorrecto");
         }
 
         function guardarConfigAdmin() {
             config.comisionMP = parseFloat(document.getElementById('inputComision').value) || 3.99;
             config.descuentoEmp = parseInt(document.getElementById('inputDescuento').value) || 15;
             config.empleados = document.getElementById('inputEmpleados').value.split(',').map(e => e.trim());
-            let nuevoPin = document.getElementById('inputNuevoPin').value;
-            if (nuevoPin.length >= 4) { config.pin = nuevoPin; }
+            let p = document.getElementById('inputNuevoPin').value; if (p.length >= 4) config.pin = p;
             localStorage.setItem('configCafe', JSON.stringify(config));
             alert("✅ Configuración guardada."); cerrarModal('modalAdmin');
+        }
+
+        // --- LÓGICA GESTIÓN PRODUCTOS ---
+        function abrirGestionProductos() {
+            cerrarModal('modalAdmin');
+            actualizarSelectCategorias();
+            renderizarAdminProductos();
+            abrirModal('modalProductos');
+        }
+
+        function agregarCategoria() {
+            let nom = document.getElementById('inputNuevaCat').value.trim();
+            if (!nom) return alert("Escribe un nombre");
+            if (productos.some(p => p.categoria.toLowerCase() === nom.toLowerCase())) return alert("Categoría ya existe");
+            // Agregamos un producto dummy invisible para que se guarde la categoría, o solo la añadimos al select temporal
+            productos.push({ id: Date.now(), nombre: `_[BORRAR]_${nom}`, precio: 0, categoria: nom, stock: -1 });
+            guardarProductos();
+            document.getElementById('inputNuevaCat').value = '';
+            actualizarSelectCategorias();
+            renderizarAdminProductos();
+        }
+
+        function actualizarSelectCategorias() {
+            let cats = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_'));
+            let html = '<option value="Todos">Todas las categorías</option>';
+            cats.forEach(c => html += `<option value="${c}">${c}</option>`);
+            document.getElementById('selectFiltroCat').innerHTML = html;
+        }
+
+        function renderizarAdminProductos() {
+            let filtro = document.getElementById('selectFiltroCat').value;
+            let prods = productos.filter(p => !p.nombre.startsWith('_[BORRAR]_'));
+            if (filtro !== 'Todos') prods = prods.filter(p => p.categoria === filtro);
+            
+            let html = '';
+            prods.forEach(p => {
+                let stockTxt = (p.stock > 0) ? ` | Stock: ${p.stock}` : (p.stock === 0) ? ' | AGOTADO' : '';
+                html += `<div class="admin-prod-item">
+                    <div class="admin-prod-info">
+                        <div style="font-weight:bold;">${p.nombre}</div>
+                        <div style="font-size:12px; color:#666;">$${p.precio.toFixed(2)} - ${p.categoria}${stockTxt}</div>
+                    </div>
+                    <div class="admin-prod-btns">
+                        <button class="btn-sm btn-edit" onclick="mostrarFormularioProducto(${p.id})">✏️</button>
+                        <button class="btn-sm btn-del" onclick="eliminarProducto(${p.id})">🗑️</button>
+                    </div>
+                </div>`;
+            });
+            document.getElementById('listaAdminProductos').innerHTML = html || '<div style="text-align:center;color:#666;">No hay productos aquí</div>';
+        }
+
+        function toggleInputStock() {
+            document.getElementById('inputProdStock').style.display = document.getElementById('checkStock').checked ? 'block' : 'none';
+        }
+
+        function mostrarFormularioProducto(id = null) {
+            document.getElementById('editProdId').value = id || '';
+            document.getElementById('tituloFormProd').innerText = id ? 'Editar Producto' : 'Nuevo Producto';
+            
+            let cats = [...new Set(productos.map(p => p.categoria))].filter(c => !c.startsWith('_[BORRAR]_'));
+            document.getElementById('selectProdCat').innerHTML = cats.map(c => `<option value="${c}">${c}</option>`).join('');
+
+            if (id) {
+                let p = productos.find(pr => pr.id === id);
+                document.getElementById('inputProdNombre').value = p.nombre;
+                document.getElementById('inputProdPrecio').value = p.precio;
+                document.getElementById('selectProdCat').value = p.categoria;
+                document.getElementById('checkStock').checked = (p.stock >= 0);
+                document.getElementById('inputProdStock').value = (p.stock >= 0) ? p.stock : 0;
+            } else {
+                document.getElementById('inputProdNombre').value = '';
+                document.getElementById('inputProdPrecio').value = '';
+                document.getElementById('checkStock').checked = false;
+                document.getElementById('inputProdStock').value = 0;
+            }
+            toggleInputStock();
+            abrirModal('modalFormProd');
+        }
+
+        function guardarProducto() {
+            let nom = document.getElementById('inputProdNombre').value.trim();
+            let pre = parseFloat(document.getElementById('inputProdPrecio').value);
+            let cat = document.getElementById('selectProdCat').value;
+            let chk = document.getElementById('checkStock').checked;
+            let stk = chk ? parseInt(document.getElementById('inputProdStock').value) || 0 : -1;
+            let id = document.getElementById('editProdId').value;
+
+            if (!nom || !pre) return alert("Nombre y Precio son obligatorios");
+
+            if (id) {
+                let p = productos.find(pr => pr.id == id);
+                p.nombre = nom; p.precio = pre; p.categoria = cat; p.stock = stk;
+            } else {
+                let nuevoId = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1;
+                productos.push({ id: nuevoId, nombre: nom, precio: pre, categoria: cat, stock: stk });
+            }
+            
+            guardarProductos();
+            cerrarModal('modalFormProd');
+            actualizarSelectCategorias();
+            renderizarAdminProductos();
+        }
+
+        function eliminarProducto(id) {
+            if (confirm("¿Seguro de ELIMINAR este producto?")) {
+                productos = productos.filter(p => p.id !== id);
+                guardarProductos();
+                renderizarAdminProductos();
+            }
+        }
+
+        function guardarProductos() {
+            localStorage.setItem('productosCafe', JSON.stringify(productos));
+            renderizarTodo(); // Actualiza la pantalla principal
+        }
+
+        // --- LÓGICA PDF CORTE DE CAJA ---
+        function verCorteCaja() {
+            cerrarModal('modalAdmin');
+            let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
+            if (!historial.length) return alert("No hay ventas registradas hoy.");
+            let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0;
+            historial.forEach(v => { if (v.metodo === 'Efectivo') totalEfectivo += v.totalCobrado; else { totalTarjeta += v.totalCobrado; totalComision += v.comisionMP; } });
+            let totalGeneral = totalEfectivo + totalTarjeta; let depositoReal = totalTarjeta - totalComision;
+            let resumenProductos = {};
+            historial.forEach(v => v.items.forEach(item => { resumenProductos[item] = (resumenProductos[item] || 0) + 1; }));
+
+            let div = document.createElement('div');
+            div.style.cssText = 'width:300px;font-family:Arial;padding:20px;background:white;color:black;';
+            div.innerHTML = `
+                <div style="text-align:center;border-bottom:2px dashed #3C2415;padding-bottom:15px;margin-bottom:15px;">
+                    <img src="icono.png" style="width:80px;height:80px;border-radius:50%;margin-bottom:10px;" onerror="this.style.display='none'">
+                    <h2 style="margin:0;color:#3C2415;">Café Jardín El Virreinal</h2>
+                    <p style="margin:5px 0;font-size:12px;">Museo de Arte Virreinal de Taxco</p>
+                    <p style="margin:5px 0;font-weight:bold;">CORTE DE CAJA</p>
+                    <p style="margin:0;font-size:12px;">${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</p>
+                </div>
+                <h3 style="text-align:center;font-size:16px;margin-top:0;">🧾 Productos Vendidos</h3>
+                <div style="border-bottom:1px solid #ccc;padding-bottom:10px;">
+                    ${Object.keys(resumenProductos).map(p => `<div style="display:flex;justify-content:space-between;font-size:14px;margin-bottom:5px;"><span>${p}</span><span style="font-weight:bold;">${resumenProductos[p]}</span></div>`).join('')}
+                </div>
+                <h3 style="text-align:center;font-size:16px;">💰 Resumen</h3>
+                <div style="font-size:14px;">
+                    <div style="display:flex;justify-content:space-between;"><span>Efectivo:</span><span>$${totalEfectivo.toFixed(2)}</span></div>
+                    <div style="display:flex;justify-content:space-between;"><span>Tarjeta (Bruto):</span><span>$${totalTarjeta.toFixed(2)}</span></div>
+                </div>
+                <div style="text-align:center;margin-top:15px;padding-top:10px;border-top:2px solid black;font-size:20px;font-weight:bold;">TOTAL: $${totalGeneral.toFixed(2)}</div>
+                <div style="background:#f9f9f9;padding:10px;border-radius:5px;margin-top:15px;font-size:12px;">
+                    <div style="font-weight:bold;margin-bottom:5px;color:#1565C0;">Ajuste Mercado Pago</div>
+                    <div style="display:flex;justify-content:space-between;"><span>Comisión (${config.comisionMP}%):</span><span style="color:red;">-$${totalComision.toFixed(2)}</span></div>
+                    <div style="display:flex;justify-content:space-between;font-weight:bold;margin-top:5px;"><span>A depositar:</span><span>$${depositoReal.toFixed(2)}</span></div>
+                </div>
+                <div style="text-align:center;margin-top:20px;border:2px solid #3C2415;padding:10px;border-radius:5px;">
+                    <div style="font-size:12px;">EN CAJA FÍSICA DEBES TENER:</div>
+                    <div style="font-size:28px;font-weight:bold;color:#2E7D32;">$${totalEfectivo.toFixed(2)}</div>
+                </div>`;
+            alert("Generando PDF...");
+            html2pdf().from(div).set({ margin:10, filename:`Corte_${new Date().toLocaleDateString().replace(/\//g,'-')}.pdf`, image:{type:'jpeg',quality:0.98}, html2canvas:{scale:2}, jsPDF:{unit:'mm',format:[80,250],orientation:'portrait'} }).outputPdf('blob').then(blob => {
+                let file = new File([blob], `Corte.pdf`, {type:'application/pdf'});
+                if(navigator.canShare && navigator.canShare({files:[file]})) {
+                    navigator.share({files:[file], title:'Corte de Caja', text:'Adjunto corte del día.'}).then(() => { localStorage.removeItem('historialVentasCafe'); alert("¡Corte enviado y día reiniciado!"); }).catch(() => alert("Envío cancelado."));
+                } else { html2pdf().from(div).save(); localStorage.removeItem('historialVentasCafe'); alert("PDF descargado."); }
+                div.remove();
+            });
         }
 
         function abrirModal(id) { document.getElementById(id).classList.add('active'); }
