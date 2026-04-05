@@ -3,17 +3,11 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=no">
-<meta name="theme-color" content="#3C2415">
-<link rel="manifest" href="manifest.json">
-<title>Café Jardín El Virreinal</title>
+    <meta name="theme-color" content="#3C2415">
+    <link rel="manifest" href="manifest.json">
     <title>Café Jardín El Virreinal</title>
     <style>
-        :root {
-            --color-fondo: #F9F6F2;
-            --color-cafe: #3C2415;
-            --color-verde: #4E6B45;
-            --color-blanco: #FFFFFF;
-        }
+        :root { --color-fondo: #F9F6F2; --color-cafe: #3C2415; --color-verde: #4E6B45; --color-blanco: #FFFFFF; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--color-fondo); margin: 0; padding: 0; color: var(--color-cafe); }
         .header { background-color: var(--color-cafe); color: var(--color-blanco); text-align: center; padding: 15px 0; font-size: 20px; font-weight: bold; position: sticky; top: 0; z-index: 100; }
         .admin-btn { position: absolute; left: 15px; top: 15px; background: none; border: none; color: var(--color-blanco); font-size: 12px; cursor: pointer; }
@@ -35,11 +29,18 @@
         .pantalla-modal.active { display: flex; }
         .modal-contenido { background: var(--color-fondo); width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; max-height: 80vh; overflow-y: auto; }
         .modal-titulo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
-        .item-carrito { display: flex; justify-content: space-between; margin-bottom: 10px; border-bottom: 1px solid #ccc; padding-bottom: 5px; }
+        
+        /* NUEVO ESTILO PARA CARRITO EDITABLE */
+        .item-carrito { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; gap: 10px; }
+        .btn-cantidad { background: var(--color-cafe); color: var(--color-blanco); border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
+        .item-detalle { flex-grow: 1; }
+        .item-subtotal { font-weight: bold; font-size: 16px; }
+
         .btn-pago { width: 100%; padding: 20px; font-size: 20px; border: none; border-radius: 5px; margin-bottom: 10px; font-weight: bold; cursor: pointer; color: var(--color-blanco); }
         .btn-efectivo { background: #2E7D32; }
         .btn-tarjeta { background: #1565C0; }
         .btn-descuento { background: #F57C00; margin-bottom: 20px; }
+        .btn-corte { background: #6A1B9A; } /* Color morado para el corte */
         .input-modal { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid var(--color-cafe); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
         .btn-volver { background: none; border: none; color: var(--color-cafe); font-size: 16px; margin-bottom: 20px; cursor: pointer; }
         .resumen-total { text-align: right; font-size: 24px; font-weight: bold; margin: 20px 0; }
@@ -61,10 +62,11 @@
         <button class="btn-cobrar" onclick="event.stopPropagation(); abrirCarrito()">COBRAR</button>
     </div>
 
+    <!-- MODAL CARRITO -->
     <div class="pantalla-modal" id="modalCarrito">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalCarrito')">← Seguir vendiendo</button>
-            <div class="modal-titulo">Detalle de Venta</div>
+            <div class="modal-titulo">Editar Orden</div>
             <div id="listaCarrito"></div>
             <div class="resumen-total">Total: $<span id="txtTotalModal">0.00</span></div>
             
@@ -76,6 +78,7 @@
         </div>
     </div>
 
+    <!-- MODAL ADMIN -->
     <div class="pantalla-modal" id="modalAdmin">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalAdmin')">← Cerrar</button>
@@ -94,6 +97,9 @@
             <input type="password" class="input-modal" id="inputNuevoPin" placeholder="Dejar vacío para no cambiar">
 
             <button class="btn-pago btn-efectivo" onclick="guardarConfigAdmin()">💾 Guardar Cambios</button>
+            
+            <!-- NUEVO BOTÓN DE CORTE DE CAJA -->
+            <button class="btn-pago btn-corte" onclick="verCorteCaja()">📊 Corte de Caja y Cerrar Día</button>
         </div>
     </div>
 
@@ -147,6 +153,30 @@
             actualizarVistaCarrito();
         }
 
+        // --- NUEVA FUNCIÓN PARA EDITAR CARRITO ---
+        function modificarCarrito(id, accion) {
+            let index = carrito.findIndex(c => c.id === id);
+            if (index === -1) return;
+            
+            let item = carrito[index];
+            let prod = productos.find(p => p.id === id);
+
+            if (accion === 'resta') {
+                // Devolver stock si aplica
+                if(prod && prod.stock >= 0) prod.stock++;
+                item.cantidad--;
+                // Si llega a cero, lo quitamos
+                if (item.cantidad <= 0) carrito.splice(index, 1);
+            } else if (accion === 'suma') {
+                if (prod && prod.stock === 0) return alert('Producto agotado');
+                if (prod && prod.stock > 0) prod.stock--;
+                item.cantidad++;
+            }
+            
+            // Refrescamos la pantalla del carrito
+            abrirCarrito();
+        }
+
         function actualizarVistaCarrito() {
             let count = carrito.reduce((total, item) => total + item.cantidad, 0);
             let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
@@ -158,7 +188,23 @@
             descuentoAplicado = false;
             document.getElementById('divInfoDescuento').style.display = 'none';
             let htmlLista = ''; let total = 0;
-            carrito.forEach(item => { let sub = item.precio * item.cantidad; total += sub; htmlLista += `<div class="item-carrito"><span>${item.cantidad}x ${item.nombre}</span><span>$${sub.toFixed(2)}</span></div>`; });
+            
+            carrito.forEach(item => {
+                let sub = item.precio * item.cantidad;
+                total += sub;
+                // NUEVO DISEÑO CON BOTONES + Y -
+                htmlLista += `
+                    <div class="item-carrito">
+                        <button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'resta')">-</button>
+                        <div class="item-detalle">
+                            <div>${item.nombre}</div>
+                            <div style="font-size:12px; color:#666;">$${item.precio.toFixed(2)} c/u</div>
+                        </div>
+                        <div class="item-subtotal">${item.cantidad}x $${sub.toFixed(2)}</div>
+                        <button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'suma')">+</button>
+                    </div>`;
+            });
+            
             document.getElementById('listaCarrito').innerHTML = htmlLista;
             document.getElementById('txtTotalModal').innerText = total.toFixed(2);
             abrirModal('modalCarrito');
@@ -177,30 +223,19 @@
         }
 
         function finalizarVenta(metodo) {
+            if(carrito.length === 0) return alert("El carrito está vacío");
             let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
             let mensajeMetodo = `💵 Pagado con: ${metodo}`;
-            if (descuentoAplicado) {
-                total = total - (total * (config.descuentoEmp / 100));
-                mensajeMetodo += ` (Con descuento)`;
-            }
+            if (descuentoAplicado) { total = total - (total * (config.descuentoEmp / 100)); mensajeMetodo += ` (Con descuento)`; }
 
-            // --- NUEVO: GUARDAR VENTA EN MEMORIA PARA EL CORTE DE CAJA ---
             let comisionCalculada = 0;
             if (metodo === 'Tarjeta') { comisionCalculada = total * (config.comisionMP / 100); }
             
-            let ventaParaGuardar = {
-                fecha: new Date().toISOString(),
-                items: carrito.map(i => `${i.cantidad}x ${i.nombre}`),
-                totalCobrado: total,
-                metodo: metodo,
-                comisionMP: comisionCalculada // Se guarda en secreto para el balance
-            };
+            let ventaParaGuardar = { fecha: new Date().toISOString(), items: carrito.map(i => `${i.cantidad}x ${i.nombre}`), totalCobrado: total, metodo: metodo, comisionMP: comisionCalculada };
             let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
             historial.push(ventaParaGuardar);
             localStorage.setItem('historialVentasCafe', JSON.stringify(historial));
-            // -----------------------------------------------------------
 
-            // TICKET LIMPIO PARA EL CLIENTE (Sin comisiones)
             let ticket = `☕ *Café jardín el Virreinal*\n📍 Interior del Museo de Arte Virreinal de Taxco\n\n`;
             carrito.forEach(item => ticket += `${item.cantidad}x ${item.nombre} ..... $${(item.precio * item.cantidad).toFixed(2)}\n`);
             ticket += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${mensajeMetodo}\n\n`;
@@ -210,6 +245,46 @@
             carrito = [];
             actualizarVistaCarrito();
             cerrarModal('modalCarrito');
+        }
+
+        // --- NUEVA FUNCIÓN: CORTE DE CAJA ---
+        function verCorteCaja() {
+            cerrarModal('modalAdmin');
+            let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
+            
+            if (historial.length === 0) {
+                return alert("No hay ventas registradas en este dispositivo.");
+            }
+
+            let totalEfectivo = 0;
+            let totalTarjeta = 0;
+            let totalComision = 0;
+
+            historial.forEach(v => {
+                if (v.metodo === 'Efectivo') { totalEfectivo += v.totalCobrado; }
+                else if (v.metodo === 'Tarjeta') { 
+                    totalTarjeta += v.totalCobrado; 
+                    totalComision += v.comisionMP;
+                }
+            });
+
+            let totalGeneral = totalEfectivo + totalTarjeta;
+            let depositoReal = totalTarjeta - totalComision;
+
+            let mensaje = `📊 *CORTE DE CAJA - Café Jardín*\n📅 Fecha: ${new Date().toLocaleDateString()}\n\n`;
+            mensaje += `💵 Efectivo: $${totalEfectivo.toFixed(2)}\n`;
+            mensaje += `💳 Tarjeta: $${totalTarjeta.toFixed(2)}\n`;
+            mensaje += `💰 *TOTAL VENTAS: $${totalGeneral.toFixed(2)}*\n\n`;
+            mensaje += `📉 *DETALLE TARJETAS:*\n`;
+            mensaje += `Comisión MP (${config.comisionMP}%): -$${totalComision.toFixed(2)}\n`;
+            mensaje += `A depositar a tu cuenta: $${depositoReal.toFixed(2)}\n\n`;
+            mensaje += `🔖 *EN CAJA DEBES TENER:*\n$${totalEfectivo.toFixed(2)}`;
+
+            if (confirm("¿Deseas enviar este corte por WhatsApp y reiniciar el día?")) {
+                window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
+                localStorage.removeItem('historialVentasCafe'); // Limpia las ventas del día
+                alert("¡Corte realizado y día reiniciado con éxito!");
+            }
         }
 
         function pedirPinAdmin() {
