@@ -59,8 +59,6 @@
         .slider:before { position: absolute; content: ""; height: 16px; width: 16px; left: 2px; bottom: 2px; background-color: white; transition: .4s; border-radius: 50%; }
         input:checked + .slider { background-color: var(--color-verde); }
         input:checked + .slider:before { transform: translateX(20px); }
-        
-        /* Estilo para las categorías en Admin */
         .admin-cat-item { display: flex; justify-content: space-between; align-items: center; background: #fff; padding: 10px; border-left: 4px solid var(--color-verde); border-radius: 3px; margin-bottom: 8px; }
     </style>
 </head>
@@ -115,8 +113,6 @@
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalProductos')">← Volver a Admin</button>
             <div class="modal-titulo">📦 Menú y Categorías</div>
-            
-            <!-- Gestión de Categorías -->
             <div style="margin-bottom: 25px;">
                 <div style="display: flex; gap: 10px; margin-bottom: 15px;">
                     <input type="text" class="input-modal" id="inputNuevaCat" placeholder="Nueva Categoría" style="margin-bottom: 0;">
@@ -124,10 +120,7 @@
                 </div>
                 <div id="listaAdminCategorias"></div>
             </div>
-
             <hr style="border: 1px solid #ccc; margin: 20px 0;">
-            
-            <!-- Gestión de Productos -->
             <select class="input-modal" id="selectFiltroCat" onchange="renderizarAdminProductos()"><option value="Todos">Todas las categorías</option></select>
             <div id="listaAdminProductos"></div>
             <button class="btn-pago btn-efectivo" onclick="mostrarFormularioProducto()" style="margin-top: 15px;">➕ Agregar Producto Nuevo</button>
@@ -154,7 +147,7 @@
     <script>
         let config = { 
             pin: '12345', comisionMP: 3.99, descuentoEmp: 15, empleados: ['101', '102'],
-            categorias: ['Calientes', 'Frías', 'Cocteles'] // <-- NUEVO: Cajón exclusivo para categorías
+            categorias: ['Calientes', 'Frías', 'Cocteles'] 
         };
         
         let productos = [
@@ -169,8 +162,6 @@
 
         if(localStorage.getItem('configCafe')) config = JSON.parse(localStorage.getItem('configCafe'));
         if(localStorage.getItem('productosCafe')) productos = JSON.parse(localStorage.getItem('productosCafe'));
-
-        // Si es la primera vez que entras, garantizamos que las categorías por defecto existan
         if(!config.categorias) config.categorias = ['Calientes', 'Frías', 'Cocteles'];
 
         function renderizarTodo() {
@@ -179,21 +170,49 @@
             document.getElementById('divCategorias').innerHTML = htmlCat;
             renderizarProductos(productos);
         }
-        function filtrarCat(cat, btn) { document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); btn.classList.add('active'); renderizarProductos(cat === 'Todos' ? productos : productos.filter(p => p.categoria === cat)); }
+        
+        function filtrarCat(cat, btn) { 
+            document.querySelectorAll('.cat-btn').forEach(b => b.classList.remove('active')); 
+            btn.classList.add('active'); 
+            renderizarProductos(cat === 'Todos' ? productos : productos.filter(p => p.categoria === cat)); 
+        }
+        
         function renderizarProductos(prods) {
             let html = '';
             prods.forEach(p => { let a = (p.stock === 0) ? '<div class="prod-stock">AGOTADO</div>' : ''; html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}"><div class="prod-name">${p.nombre}</div><div class="prod-price">$${p.precio.toFixed(2)}</div>${a}</div>`; });
             document.getElementById('divProductos').innerHTML = html;
         }
-        function agregarAlCarrito(id) { let p = produits.find(x => x.id === id); if (p.stock === 0) return alert('Agotado'); let e = carrito.find(x => x.id === id); if (e) e.cantidad++; else carrito.push({ id: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }); if(p.stock > 0) p.stock--; actualizarVistaCarrito(); }
-        function modificarCarrito(id, accion) { let i = carrito.findIndex(x => x.id === id); if (i === -1) return; let it = carrito[i], p = produits.find(x => x.id === id); if (accion === 'resta') { if(p && p.stock >= 0) p.stock++; it.cantidad--; if (it.cantidad <= 0) carrito.splice(i, 1); } else { if (p && p.stock === 0) return alert('Agotado'); if (p && p.stock > 0) p.stock--; it.cantidad++; } abrirCarrito(); }
-        function actualizarVistaCarrito() { document.getElementById('txtCountCarrito').innerText = carrito.reduce((t, i) => t + i.cantidad, 0); document.getElementById('txtTotalCarrito').innerText = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0).toFixed(2); }
+        
+        function agregarAlCarrito(id) { 
+            let p = productos.find(x => x.id === id); 
+            if (p.stock === 0) return alert('Agotado'); 
+            let e = carrito.find(x => x.id === id); 
+            if (e) e.cantidad++; else carrito.push({ id: p.id, nombre: p.nombre, precio: p.precio, cantidad: 1 }); 
+            if(p.stock > 0) p.stock--; 
+            actualizarVistaCarrito(); 
+        }
+        
+        function modificarCarrito(id, accion) { 
+            let i = carrito.findIndex(x => x.id === id); 
+            if (i === -1) return; 
+            let it = carrito[i], p = productos.find(x => x.id === id); 
+            if (accion === 'resta') { if(p && p.stock >= 0) p.stock++; it.cantidad--; if (it.cantidad <= 0) carrito.splice(i, 1); } 
+            else { if (p && p.stock === 0) return alert('Agotado'); if (p && p.stock > 0) p.stock--; it.cantidad++; } 
+            abrirCarrito(); 
+        }
+        
+        function actualizarVistaCarrito() { 
+            document.getElementById('txtCountCarrito').innerText = carrito.reduce((t, i) => t + i.cantidad, 0); 
+            document.getElementById('txtTotalCarrito').innerText = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0).toFixed(2); 
+        }
+        
         function abrirCarrito() {
             descuentoAplicado = false; document.getElementById('divInfoDescuento').style.display = 'none';
             let h = '', t = 0;
             carrito.forEach(i => { let s = i.precio * i.cantidad; t += s; h += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'resta')">-</button><div class="item-detalle"><div>${i.nombre}</div><div style="font-size:12px; color:#666;">$${i.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${i.cantidad}x $${s.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${i.id}, 'suma')">+</button></div>`; });
             document.getElementById('listaCarrito').innerHTML = h; document.getElementById('txtTotalModal').innerText = t.toFixed(2); abrirModal('modalCarrito');
         }
+        
         function aplicarDescuentoEmpleado() {
             let n = prompt("Número de empleado:"); if (!n) return;
             if (config.empleados.includes(n)) { descuentoAplicado = true; document.getElementById('divInfoDescuento').style.display = 'block'; document.getElementById('divInfoDescuento').innerText = `✅ Descuento ${config.descuentoEmp}% (Emp: ${n})`; let t = carrito.reduce((t, i) => t + (i.precio * i.cantidad), 0); document.getElementById('txtTotalModal').innerText = (t - (t * (config.descuentoEmp / 100))).toFixed(2); } else alert("❌ No registrado.");
@@ -208,7 +227,6 @@
             let hist = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
             hist.push({ fecha: new Date().toISOString(), items: carrito.map(i => ({n: i.nombre, c: i.cantidad, p: i.precio})), totalCobrado: total, metodo, comisionMP: com });
             localStorage.setItem('historialVentasCafe', JSON.stringify(hist));
-            
             let tkt = `☕ *Café jardín el Virreinal*\n📍 Museo de Arte Virreinal de Taxco\n\n`;
             carrito.forEach(i => tkt += `${i.cantidad}x ${i.nombre} ..... $${(i.precio * i.cantidad).toFixed(2)}\n`);
             tkt += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${msg}\n\n"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
@@ -217,6 +235,7 @@
         }
 
         function pedirPinAdmin() { if (prompt("PIN:") === config.pin) { document.getElementById('inputComision').value = config.comisionMP; document.getElementById('inputDescuento').value = config.descuentoEmp; document.getElementById('inputEmpleados').value = config.empleados.join(', '); document.getElementById('inputNuevoPin').value = ''; abrirModal('modalAdmin'); } else alert("PIN incorrecto"); }
+        
         function guardarConfigAdmin() { 
             config.comisionMP = parseFloat(document.getElementById('inputComision').value) || 3.99; 
             config.descuentoEmp = parseInt(document.getElementById('inputDescuento').value) || 15; 
@@ -226,58 +245,42 @@
             alert("✅ Guardado."); cerrarModal('modalAdmin'); 
         }
         
-        // --- LÓGICA ADMIN DE PRODUCTOS Y CATEGORÍAS ---
         function abrirGestionProductos() { 
             cerrarModal('modalAdmin'); 
-            renderizarAdminCategorias(); // Ahora renderiza las categorías primero
+            renderizarAdminCategorias(); 
             actualizarSelectCategorias(); 
             renderizarAdminProductos(); 
             abrirModal('modalProductos'); 
         }
 
-        // NUEVA FUNCIÓN: Agregar Categoría Limpia
         function agregarCategoria() {
             let nom = document.getElementById('inputNuevaCat').value.trim(); 
             if (!nom) return alert("Escribe un nombre");
             if (config.categorias.includes(nom)) return alert("Esta categoría ya existe");
-            
-            config.categorias.push(nom); // Se agrega al cajón limpio
-            localStorage.setItem('configCafe', JSON.stringify(config)); // Se guarda
-            
+            config.categorias.push(nom); 
+            localStorage.setItem('configCafe', JSON.stringify(config)); 
             document.getElementById('inputNuevaCat').value = ''; 
             renderizarAdminCategorias();
             actualizarSelectCategorias(); 
         }
 
-        // NUEVA FUNCIÓN: Eliminar Categoría Completamente
         function eliminarCategoria(nombreCat) {
             if (config.categorias.length <= 1) return alert("Debes dejar al menos una categoría.");
-            if (!confirm(`¿Eliminar la categoría "${nombreCat}"?\n\nLos productos dentro de esta categoría se moverán a la primera categoría disponible.`)) return;
-
-            // Sacamos la categoría del cajón
+            if (!confirm(`¿Eliminar la categoría "${nombreCat}"?\n\nLos productos se moverán a la primera disponible.`)) return;
             config.categorias = config.categorias.filter(c => c !== nombreCat);
             localStorage.setItem('configCafe', JSON.stringify(config));
-
-            // Reasignamos los productos huérfanos a la primera categoría que quede
             let catRespaldo = config.categorias[0];
-            productos.forEach(p => {
-                if (p.categoria === nombreCat) p.categoria = catRespaldo;
-            });
+            productos.forEach(p => { if (p.categoria === nombreCat) p.categoria = catRespaldo; });
             guardarProductos();
-
             renderizarAdminCategorias();
             actualizarSelectCategorias(); 
             renderizarAdminProductos();
         }
 
-        // NUEVA FUNCIÓN: Dibujar categorías en pantalla
         function renderizarAdminCategorias() {
             let html = '';
             config.categorias.forEach(c => {
-                html += `<div class="admin-cat-item">
-                    <div style="font-weight: bold; font-size: 14px;">📁 ${c}</div>
-                    <button class="btn-sm btn-del" onclick="eliminarCategoria('${c}')">🗑️</button>
-                </div>`;
+                html += `<div class="admin-cat-item"><div style="font-weight: bold; font-size: 14px;">📁 ${c}</div><button class="btn-sm btn-del" onclick="eliminarCategoria('${c}')">🗑️</button></div>`;
             });
             document.getElementById('listaAdminCategorias').innerHTML = html;
         }
@@ -288,7 +291,7 @@
         
         function renderizarAdminProductos() { 
             let f = document.getElementById('selectFiltroCat').value; 
-            let p = produits.filter(p => !p.nombre.startsWith('_[BORRAR]_')); // Limpia basura antigua por si acabo
+            let p = productos.filter(p => !p.nombre.startsWith('_[BORRAR]_')); 
             if (f !== 'Todos') p = p.filter(x => x.categoria === f); 
             let h = ''; 
             p.forEach(p => { 
@@ -303,9 +306,9 @@
         function mostrarFormularioProducto(id = null) { 
             document.getElementById('editProdId').value = id || ''; 
             document.getElementById('tituloFormProd').innerText = id ? 'Editar' : 'Nuevo'; 
-            document.getElementById('selectProdCat').innerHTML = config.categorias.map(c => `<option value="${c}">${c}</option>`).join(''); // Usa el cajón limpio
+            document.getElementById('selectProdCat').innerHTML = config.categorias.map(c => `<option value="${c}">${c}</option>`).join('');
             if (id) { 
-                let p = produits.find(x => x.id === id); 
+                let p = productos.find(x => x.id === id); 
                 document.getElementById('inputProdNombre').value = p.nombre; 
                 document.getElementById('inputProdPrecio').value = p.precio; 
                 document.getElementById('selectProdCat').value = p.categoria; 
@@ -323,21 +326,20 @@
         function guardarProducto() { 
             let n = document.getElementById('inputProdNombre').value.trim(), p = parseFloat(document.getElementById('inputProdPrecio').value), c = document.getElementById('selectProdCat').value, ch = document.getElementById('checkStock').checked, s = ch ? parseInt(document.getElementById('inputProdStock').value) || 0 : -1, id = document.getElementById('editProdId').value; 
             if (!n || !p) return alert("Nombre y Precio obligatorios"); 
-            if (id) { let x = produits.find(pr => pr.id == id); x.nombre = n; x.precio = p; x.categoria = c; x.stock = s; } 
-            else { let nid = produits.length > 0 ? Math.max(...produits.map(p => p.id)) + 1 : 1; produits.push({ id: nid, nombre: n, precio: p, categoria: c, stock: s }); } 
+            if (id) { let x = productos.find(pr => pr.id == id); x.nombre = n; x.precio = p; x.categoria = c; x.stock = s; } 
+            else { let nid = productos.length > 0 ? Math.max(...productos.map(p => p.id)) + 1 : 1; productos.push({ id: nid, nombre: n, precio: p, categoria: c, stock: s }); } 
             guardarProductos(); cerrarModal('modalFormProd'); actualizarSelectCategorias(); renderizarAdminProductos(); 
         }
         
         function eliminarProducto(id) { 
             if (confirm("¿ELIMINAR este producto?")) { 
-                produits = produits.filter(p => p.id !== id); 
+                productos = productos.filter(p => p.id !== id); 
                 guardarProductos(); renderizarAdminProductos(); 
             } 
         }
         
         function guardarProductos() { localStorage.setItem('productosCafe', JSON.stringify(productos)); renderizarTodo(); }
 
-        // --- PDF (Igual de perfecto que el anterior) ---
         function verCorteCaja() {
             cerrarModal('modalAdmin');
             let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
