@@ -6,6 +6,8 @@
     <meta name="theme-color" content="#3C2415">
     <link rel="manifest" href="manifest.json">
     <title>Café Jardín El Virreinal</title>
+    <!-- HERRAMIENTA PARA GENERAR PDF -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2pdf.js/0.10.1/html2pdf.bundle.min.js"></script>
     <style>
         :root { --color-fondo: #F9F6F2; --color-cafe: #3C2415; --color-verde: #4E6B45; --color-blanco: #FFFFFF; }
         body { font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif; background-color: var(--color-fondo); margin: 0; padding: 0; color: var(--color-cafe); }
@@ -30,7 +32,6 @@
         .modal-contenido { background: var(--color-fondo); width: 90%; max-width: 400px; border-radius: 10px; padding: 20px; max-height: 80vh; overflow-y: auto; }
         .modal-titulo { text-align: center; font-size: 22px; font-weight: bold; margin-bottom: 20px; }
         
-        /* NUEVO ESTILO PARA CARRITO EDITABLE */
         .item-carrito { display: flex; align-items: center; margin-bottom: 15px; border-bottom: 1px solid #ddd; padding-bottom: 10px; gap: 10px; }
         .btn-cantidad { background: var(--color-cafe); color: var(--color-blanco); border: none; width: 35px; height: 35px; border-radius: 50%; font-size: 20px; font-weight: bold; cursor: pointer; display: flex; align-items: center; justify-content: center; }
         .item-detalle { flex-grow: 1; }
@@ -40,7 +41,7 @@
         .btn-efectivo { background: #2E7D32; }
         .btn-tarjeta { background: #1565C0; }
         .btn-descuento { background: #F57C00; margin-bottom: 20px; }
-        .btn-corte { background: #6A1B9A; } /* Color morado para el corte */
+        .btn-corte { background: #6A1B9A; }
         .input-modal { width: 100%; padding: 15px; margin-bottom: 15px; border: 1px solid var(--color-cafe); border-radius: 5px; font-size: 16px; box-sizing: border-box; }
         .btn-volver { background: none; border: none; color: var(--color-cafe); font-size: 16px; margin-bottom: 20px; cursor: pointer; }
         .resumen-total { text-align: right; font-size: 24px; font-weight: bold; margin: 20px 0; }
@@ -62,44 +63,33 @@
         <button class="btn-cobrar" onclick="event.stopPropagation(); abrirCarrito()">COBRAR</button>
     </div>
 
-    <!-- MODAL CARRITO -->
     <div class="pantalla-modal" id="modalCarrito">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalCarrito')">← Seguir vendiendo</button>
             <div class="modal-titulo">Editar Orden</div>
             <div id="listaCarrito"></div>
             <div class="resumen-total">Total: $<span id="txtTotalModal">0.00</span></div>
-            
             <button class="btn-pago btn-descuento" onclick="aplicarDescuentoEmpleado()">🏷️ Aplicar Descuento Empleado</button>
             <div id="divInfoDescuento" style="display:none; text-align:center; color: #F57C00; margin-bottom: 10px; font-weight: bold;"></div>
-
             <button class="btn-pago btn-efectivo" onclick="finalizarVenta('Efectivo')">💵 Cobrar con EFECTIVO</button>
             <button class="btn-pago btn-tarjeta" onclick="finalizarVenta('Tarjeta')">💳 Cobrar con TARJETA</button>
         </div>
     </div>
 
-    <!-- MODAL ADMIN -->
     <div class="pantalla-modal" id="modalAdmin">
         <div class="modal-contenido">
             <button class="btn-volver" onclick="cerrarModal('modalAdmin')">← Cerrar</button>
             <div class="modal-titulo">⚙️ Configuración</div>
-            
             <label>Comisión Mercado Pago (%):</label>
             <input type="number" class="input-modal" id="inputComision" step="0.01">
-            
             <label>Descuento Empleado (%):</label>
             <input type="number" class="input-modal" id="inputDescuento">
-            
             <label>Números de Empleados (separados por coma):</label>
             <input type="text" class="input-modal" id="inputEmpleados" placeholder="Ej: 101, 102, 103">
-
             <label>Nuevo PIN de Admin:</label>
             <input type="password" class="input-modal" id="inputNuevoPin" placeholder="Dejar vacío para no cambiar">
-
             <button class="btn-pago btn-efectivo" onclick="guardarConfigAdmin()">💾 Guardar Cambios</button>
-            
-            <!-- NUEVO BOTÓN DE CORTE DE CAJA -->
-            <button class="btn-pago btn-corte" onclick="verCorteCaja()">📊 Corte de Caja y Cerrar Día</button>
+            <button class="btn-pago btn-corte" onclick="verCorteCaja()">📊 Generar Corte en PDF</button>
         </div>
     </div>
 
@@ -113,8 +103,7 @@
             { id: 5, nombre: 'Limonada', precio: 55, categoria: 'Frías', stock: -1 },
             { id: 6, nombre: 'Mojito Sin Alcohol', precio: 85, categoria: 'Cocteles', stock: -1 }
         ];
-        let carrito = [];
-        let descuentoAplicado = false;
+        let carrito = []; let descuentoAplicado = false;
 
         if(localStorage.getItem('configCafe')) config = JSON.parse(localStorage.getItem('configCafe'));
         if(localStorage.getItem('productosCafe')) productos = JSON.parse(localStorage.getItem('productosCafe'));
@@ -137,9 +126,7 @@
             let html = '';
             prods.forEach(p => {
                 let alertaStock = (p.stock === 0) ? '<div class="prod-stock">AGOTADO</div>' : '';
-                html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}">
-                    <div class="prod-name">${p.nombre}</div>
-                    <div class="prod-price">$${p.precio.toFixed(2)}</div>${alertaStock}</div>`;
+                html += `<div class="prod-card" onclick="agregarAlCarrito(${p.id})" style="${p.stock === 0 ? 'opacity:0.5' : ''}"><div class="prod-name">${p.nombre}</div><div class="prod-price">$${p.precio.toFixed(2)}</div>${alertaStock}</div>`;
             });
             document.getElementById('divProductos').innerHTML = html;
         }
@@ -153,27 +140,19 @@
             actualizarVistaCarrito();
         }
 
-        // --- NUEVA FUNCIÓN PARA EDITAR CARRITO ---
         function modificarCarrito(id, accion) {
             let index = carrito.findIndex(c => c.id === id);
             if (index === -1) return;
-            
-            let item = carrito[index];
-            let prod = productos.find(p => p.id === id);
-
+            let item = carrito[index]; let prod = productos.find(p => p.id === id);
             if (accion === 'resta') {
-                // Devolver stock si aplica
                 if(prod && prod.stock >= 0) prod.stock++;
                 item.cantidad--;
-                // Si llega a cero, lo quitamos
                 if (item.cantidad <= 0) carrito.splice(index, 1);
             } else if (accion === 'suma') {
                 if (prod && prod.stock === 0) return alert('Producto agotado');
                 if (prod && prod.stock > 0) prod.stock--;
                 item.cantidad++;
             }
-            
-            // Refrescamos la pantalla del carrito
             abrirCarrito();
         }
 
@@ -188,23 +167,10 @@
             descuentoAplicado = false;
             document.getElementById('divInfoDescuento').style.display = 'none';
             let htmlLista = ''; let total = 0;
-            
             carrito.forEach(item => {
-                let sub = item.precio * item.cantidad;
-                total += sub;
-                // NUEVO DISEÑO CON BOTONES + Y -
-                htmlLista += `
-                    <div class="item-carrito">
-                        <button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'resta')">-</button>
-                        <div class="item-detalle">
-                            <div>${item.nombre}</div>
-                            <div style="font-size:12px; color:#666;">$${item.precio.toFixed(2)} c/u</div>
-                        </div>
-                        <div class="item-subtotal">${item.cantidad}x $${sub.toFixed(2)}</div>
-                        <button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'suma')">+</button>
-                    </div>`;
+                let sub = item.precio * item.cantidad; total += sub;
+                htmlLista += `<div class="item-carrito"><button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'resta')">-</button><div class="item-detalle"><div>${item.nombre}</div><div style="font-size:12px; color:#666;">$${item.precio.toFixed(2)} c/u</div></div><div class="item-subtotal">${item.cantidad}x $${sub.toFixed(2)}</div><button class="btn-cantidad" onclick="modificarCarrito(${item.id}, 'suma')">+</button></div>`;
             });
-            
             document.getElementById('listaCarrito').innerHTML = htmlLista;
             document.getElementById('txtTotalModal').innerText = total.toFixed(2);
             abrirModal('modalCarrito');
@@ -227,64 +193,125 @@
             let total = carrito.reduce((total, item) => total + (item.precio * item.cantidad), 0);
             let mensajeMetodo = `💵 Pagado con: ${metodo}`;
             if (descuentoAplicado) { total = total - (total * (config.descuentoEmp / 100)); mensajeMetodo += ` (Con descuento)`; }
-
             let comisionCalculada = 0;
             if (metodo === 'Tarjeta') { comisionCalculada = total * (config.comisionMP / 100); }
-            
             let ventaParaGuardar = { fecha: new Date().toISOString(), items: carrito.map(i => `${i.cantidad}x ${i.nombre}`), totalCobrado: total, metodo: metodo, comisionMP: comisionCalculada };
             let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
             historial.push(ventaParaGuardar);
             localStorage.setItem('historialVentasCafe', JSON.stringify(historial));
-
             let ticket = `☕ *Café jardín el Virreinal*\n📍 Interior del Museo de Arte Virreinal de Taxco\n\n`;
             carrito.forEach(item => ticket += `${item.cantidad}x ${item.nombre} ..... $${(item.precio * item.cantidad).toFixed(2)}\n`);
-            ticket += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${mensajeMetodo}\n\n`;
-            ticket += `"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
-
+            ticket += `\n💰 *TOTAL: $${total.toFixed(2)}*\n${mensajeMetodo}\n\n"El café es un abrazo caliente para el alma."\n¡Gracias por su compra! 🌿`;
             window.open(`https://wa.me/?text=${encodeURIComponent(ticket)}`, '_blank');
-            carrito = [];
-            actualizarVistaCarrito();
-            cerrarModal('modalCarrito');
+            carrito = []; actualizarVistaCarrito(); cerrarModal('modalCarrito');
         }
 
-        // --- NUEVA FUNCIÓN: CORTE DE CAJA ---
+        // --- FUNCIÓN PDF CORTE DE CAJA ---
         function verCorteCaja() {
             cerrarModal('modalAdmin');
             let historial = JSON.parse(localStorage.getItem('historialVentasCafe')) || [];
-            
-            if (historial.length === 0) {
-                return alert("No hay ventas registradas en este dispositivo.");
-            }
+            if (historial.length === 0) return alert("No hay ventas registradas hoy.");
 
-            let totalEfectivo = 0;
-            let totalTarjeta = 0;
-            let totalComision = 0;
-
+            // 1. Calcular totales
+            let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0;
             historial.forEach(v => {
-                if (v.metodo === 'Efectivo') { totalEfectivo += v.totalCobrado; }
-                else if (v.metodo === 'Tarjeta') { 
-                    totalTarjeta += v.totalCobrado; 
-                    totalComision += v.comisionMP;
-                }
+                if (v.metodo === 'Efectivo') totalEfectivo += v.totalCobrado;
+                else { totalTarjeta += v.totalCobrado; totalComision += v.comisionMP; }
             });
-
             let totalGeneral = totalEfectivo + totalTarjeta;
             let depositoReal = totalTarjeta - totalComision;
 
-            let mensaje = `📊 *CORTE DE CAJA - Café Jardín*\n📅 Fecha: ${new Date().toLocaleDateString()}\n\n`;
-            mensaje += `💵 Efectivo: $${totalEfectivo.toFixed(2)}\n`;
-            mensaje += `💳 Tarjeta: $${totalTarjeta.toFixed(2)}\n`;
-            mensaje += `💰 *TOTAL VENTAS: $${totalGeneral.toFixed(2)}*\n\n`;
-            mensaje += `📉 *DETALLE TARJETAS:*\n`;
-            mensaje += `Comisión MP (${config.comisionMP}%): -$${totalComision.toFixed(2)}\n`;
-            mensaje += `A depositar a tu cuenta: $${depositoReal.toFixed(2)}\n\n`;
-            mensaje += `🔖 *EN CAJA DEBES TENER:*\n$${totalEfectivo.toFixed(2)}`;
+            // 2. Agrupar productos vendidos
+            let resumenProductos = {};
+            historial.forEach(v => {
+                v.items.forEach(item => {
+                    resumenProductos[item] = (resumenProductos[item] || 0) + 1;
+                });
+            });
 
-            if (confirm("¿Deseas enviar este corte por WhatsApp y reiniciar el día?")) {
-                window.open(`https://wa.me/?text=${encodeURIComponent(mensaje)}`, '_blank');
-                localStorage.removeItem('historialVentasCafe'); // Limpia las ventas del día
-                alert("¡Corte realizado y día reiniciado con éxito!");
-            }
+            // 3. Crear el diseño visual del PDF
+            let divReporte = document.createElement('div');
+            divReporte.style.width = '300px';
+            divReporte.style.fontFamily = 'Arial, sans-serif';
+            divReporte.style.padding = '20px';
+            divReporte.style.background = 'white';
+            divReporte.style.color = 'black';
+            divReporte.innerHTML = `
+                <div style="text-align: center; border-bottom: 2px dashed #3C2415; padding-bottom: 15px; margin-bottom: 15px;">
+                    <img src="icono.png" style="width: 80px; height: 80px; border-radius: 50%; margin-bottom: 10px;" onerror="this.style.display='none'">
+                    <h2 style="margin: 0; color: #3C2415;">Café Jardín El Virreinal</h2>
+                    <p style="margin: 5px 0; font-size: 12px;">Museo de Arte Virreinal de Taxco</p>
+                    <p style="margin: 5px 0; font-weight: bold;">CORTE DE CAJA</p>
+                    <p style="margin: 0; font-size: 12px;">${new Date().toLocaleDateString()} - ${new Date().toLocaleTimeString()}</p>
+                </div>
+                
+                <h3 style="text-align: center; font-size: 16px; margin-top: 0;">🧾 Productos Vendidos</h3>
+                <div style="border-bottom: 1px solid #ccc; padding-bottom: 10px;">
+                    ${Object.keys(resumenProductos).map(p => `
+                        <div style="display: flex; justify-content: space-between; font-size: 14px; margin-bottom: 5px;">
+                            <span>${p}</span>
+                            <span style="font-weight: bold;">${resumenProductos[p]}</span>
+                        </div>
+                    `).join('')}
+                </div>
+
+                <h3 style="text-align: center; font-size: 16px;">💰 Resumen de Pagos</h3>
+                <div style="font-size: 14px;">
+                    <div style="display: flex; justify-content: space-between;"><span>Efectivo:</span><span>$${totalEfectivo.toFixed(2)}</span></div>
+                    <div style="display: flex; justify-content: space-between;"><span>Tarjeta (Bruto):</span><span>$${totalTarjeta.toFixed(2)}</span></div>
+                </div>
+
+                <div style="text-align: center; margin-top: 15px; padding-top: 10px; border-top: 2px solid black; font-size: 20px; font-weight: bold;">
+                    TOTAL: $${totalGeneral.toFixed(2)}
+                </div>
+
+                <div style="background: #f9f9f9; padding: 10px; border-radius: 5px; margin-top: 15px; font-size: 12px;">
+                    <div style="font-weight: bold; margin-bottom: 5px; color: #1565C0;">Ajuste Mercado Pago</div>
+                    <div style="display: flex; justify-content: space-between;"><span>Comisión (${config.comisionMP}%):</span><span style="color: red;">-$${totalComision.toFixed(2)}</span></div>
+                    <div style="display: flex; justify-content: space-between; font-weight: bold; margin-top: 5px;"><span>A depositar a cuenta:</span><span>$${depositoReal.toFixed(2)}</span></div>
+                </div>
+
+                <div style="text-align: center; margin-top: 20px; border: 2px solid #3C2415; padding: 10px; border-radius: 5px;">
+                    <div style="font-size: 12px;">EN CAJA FÍSICA DEBES TENER:</div>
+                    <div style="font-size: 28px; font-weight: bold; color: #2E7D32;">$${totalEfectivo.toFixed(2)}</div>
+                </div>
+            `;
+
+            // 4. Generar el PDF
+            alert("Generando PDF, espera un momento...");
+            let nombreArchivo = `Corte_CafeJardin_${new Date().toLocaleDateString().replace(/\//g, '-')}.pdf`;
+            
+            html2pdf().from(divReporte).set({
+                margin: 10,
+                filename: nombreArchivo,
+                image: { type: 'jpeg', quality: 0.98 },
+                html2canvas: { scale: 2 },
+                jsPDF: { unit: 'mm', format: [80, 250], orientation: 'portrait' } // Formato de ticket largo
+            }).outputPdf('blob').then(function(blob) {
+                
+                // 5. Compartir el archivo
+                let file = new File([blob], nombreArchivo, { type: 'application/pdf' });
+                
+                if (navigator.canShare && navigator.canShare({ files: [file] })) {
+                    navigator.share({
+                        files: [file],
+                        title: 'Corte de Caja Café Jardín',
+                        text: 'Adjunto el corte de caja del día de hoy.'
+                    }).then(() => {
+                        localStorage.removeItem('historialVentasCafe');
+                        alert("¡Corte enviado y día reiniciado con éxito!");
+                    }).catch(error => {
+                        console.log("Error al compartir:", error);
+                        alert("Se canceló el envío. Las ventas siguen guardadas.");
+                    });
+                } else {
+                    // Si el celular es muy viejo y no permite compartir, lo descarga
+                    html2pdf().from(divReporte).save();
+                    localStorage.removeItem('historialVentasCafe');
+                    alert("¡PDF descargado! (Reiniciando día...)");
+                }
+                divReporte.remove(); // Limpiar memoria
+            });
         }
 
         function pedirPinAdmin() {
@@ -305,8 +332,7 @@
             let nuevoPin = document.getElementById('inputNuevoPin').value;
             if (nuevoPin.length >= 4) { config.pin = nuevoPin; }
             localStorage.setItem('configCafe', JSON.stringify(config));
-            alert("✅ Configuración guardada.");
-            cerrarModal('modalAdmin');
+            alert("✅ Configuración guardada."); cerrarModal('modalAdmin');
         }
 
         function abrirModal(id) { document.getElementById(id).classList.add('active'); }
