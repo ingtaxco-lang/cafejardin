@@ -1054,89 +1054,104 @@
            CORTE DE CAJA PDF — CON DESCUENTOS
            ============================================= */
         function verCorteCaja(tipo) {
-            cerrarModal('modalAdmin');
-            let filtro = filtrarHistorial(tipo);
-            if (!filtro.datos.length) return toast('No hay ventas en este periodo', 'warn');
+    cerrarModal('modalAdmin');
+    let filtro = filtrarHistorial(tipo);
+    if (!filtro.datos.length) return toast('No hay ventas en este periodo', 'warn');
 
-            let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0, totalDescuentos = 0;
-            let ventasConDescuento = 0;
+    let totalEfectivo = 0, totalTarjeta = 0, totalComision = 0, totalDescuentos = 0;
+    let ventasConDescuento = 0;
+    let totalBruto = 0; // NUEVO: venta antes de descuentos
 
-            filtro.datos.forEach(v => {
-                // Acumular descuentos de empleados
-                if (v.descuentoMonto) {
-                    totalDescuentos += v.descuentoMonto;
-                    ventasConDescuento++;
-                }
-                if (v.metodo === 'Efectivo') {
-                    totalEfectivo += v.totalCobrado;
-                } else if (v.metodo === 'Tarjeta') {
-                    totalTarjeta += v.totalCobrado;
-                    totalComision += (v.comisionMP || 0);
-                } else if (v.metodo === 'Mixto') {
-                    totalEfectivo += (v.efectivo || 0);
-                    totalTarjeta += (v.tarjeta || 0);
-                    totalComision += (v.comisionMP || 0);
-                }
-            });
-            let totalGeneral = totalEfectivo + totalTarjeta;
-            let depositoReal = totalTarjeta - totalComision;
-
-            // Resumen por producto
-            let resumenProductos = {};
-            filtro.datos.forEach(v => { v.items.forEach(item => { if (!resumenProductos[item.n]) resumenProductos[item.n] = { cantidad: 0, subtotal: 0 }; resumenProductos[item.n].cantidad += item.c; resumenProductos[item.n].subtotal += (item.c * item.p); }); });
-
-            let filas = '';
-            Object.keys(resumenProductos).sort().forEach(n => { let d = resumenProductos[n]; filas += '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">' + n + '</td><td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">' + d.cantidad + '</td><td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:bold;">$ ' + d.subtotal.toFixed(2) + '</td></tr>'; });
-
-            // Fila de descuentos (solo si hubo)
-            let filaDescuentos = '';
-            if (totalDescuentos > 0) {
-                filaDescuentos =
-                    '<tr><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#E65100;">DESCUENTOS EMPLEADOS (' + ventasConDescuento + ' venta' + (ventasConDescuento !== 1 ? 's' : '') + ')</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#E65100;">- $ ' + totalDescuentos.toFixed(2) + '</td></tr>';
-            }
-
-            let div = document.createElement('div');
-            div.style.cssText = 'width: 190mm; padding: 10mm; font-family: "DM Sans", Arial, sans-serif; font-size: 11px; color: #3C2415;';
-
-            div.innerHTML =
-                '<div style="text-align:center;border-bottom:3px double #3C2415;padding-bottom:15px;margin-bottom:20px;">' +
-                '<img src="icono.png" style="width:80px;height:80px;border-radius:50%;margin-bottom:10px;" onerror="this.style.display=\'none\'">' +
-                '<h1 style="margin:0;color:#3C2415;font-size:22px;font-family:Cormorant Garamond,serif;">Café Jardín El Virreinal</h1>' +
-                '<p style="margin:5px 0;font-size:12px;color:#8D6E63;">Museo de Arte Virreinal de Taxco</p>' +
-                '<p style="margin:15px 0 5px 0;font-weight:bold;font-size:16px;">' + filtro.titulo + '</p>' +
-                '<p style="margin:0;font-size:12px;">Transacciones: ' + filtro.datos.length + '</p></div>' +
-
-                '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><thead><tr style="background-color:#3C2415;color:#FDF8F0;"><th style="padding:8px;text-align:left;width:60%;">Concepto</th><th style="padding:8px;text-align:center;width:15%;">Cant</th><th style="padding:8px;text-align:right;width:25%;">Importe</th></tr></thead><tbody>' + filas + '</tbody></table>' +
-
-                '<table style="width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:20px;">' +
-                '<tr><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;">VENTAS EN EFECTIVO</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#2E7D32;">$ ' + totalEfectivo.toFixed(2) + '</td></tr>' +
-                '<tr><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;">VENTAS CON TARJETA</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#1565C0;">$ ' + totalTarjeta.toFixed(2) + '</td></tr>' +
-                filaDescuentos +
-                '<tr style="background-color:#F5EFE6;"><td style="padding:10px;font-size:16px;font-weight:bold;">TOTAL PERIODO</td><td style="padding:10px;text-align:right;font-size:16px;font-weight:bold;">$ ' + totalGeneral.toFixed(2) + '</td></tr></table>' +
-
-                '<div style="border:1px solid #1565C0;padding:12px;background-color:#f4f8ff;margin-bottom:20px;border-radius:8px;">' +
-                '<div style="font-weight:bold;margin-bottom:8px;color:#1565C0;font-size:12px;">DETALLE TARJETA (MERCADO PAGO)</div>' +
-                '<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Total cobrado:</span><span>$ ' + totalTarjeta.toFixed(2) + '</span></div>' +
-                '<div style="display:flex;justify-content:space-between;font-size:11px;color:#C62828;"><span>Comisión descontada (' + config.comisionMP + '%):</span><span>- $ ' + totalComision.toFixed(2) + '</span></div>' +
-                '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;margin-top:8px;border-top:1px solid #ccc;padding-top:8px;color:#1565C0;"><span>A DEPOSITAR A CUENTA:</span><span>$ ' + depositoReal.toFixed(2) + '</span></div></div>' +
-
-                '<div style="border:3px double #3C2415;padding:15px;text-align:center;background-color:#FDF8F0;border-radius:8px;">' +
-                '<div style="font-size:13px;font-weight:bold;">EN CAJA FÍSICA DEBES TENER:</div>' +
-                '<div style="font-size:26px;font-weight:bold;color:#2E7D32;margin:5px 0;">$ ' + totalEfectivo.toFixed(2) + '</div></div>';
-
-            toast('Generando PDF...', 'info');
-            html2pdf().from(div).set({
-                margin: 0, filename: 'Corte_' + tipo + '_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.pdf',
-                image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true },
-                jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
-            }).outputPdf('blob').then(blob => {
-                let file = new File([blob], 'Corte.pdf', { type: 'application/pdf' });
-                if (navigator.canShare && navigator.canShare({ files: [file] })) {
-                    navigator.share({ files: [file], title: 'Corte', text: 'Corte ' + tipo }).catch(() => { html2pdf().from(div).save(); toast('PDF descargado', 'ok'); });
-                } else { html2pdf().from(div).save(); toast('PDF descargado', 'ok'); }
-                div.remove();
-            });
+    filtro.datos.forEach(v => {
+        // Calcular bruto: si tiene descuento, usar subtotalOriginal; si no, usar totalCobrado
+        if (v.subtotalOriginal) {
+            totalBruto += v.subtotalOriginal;
+            totalDescuentos += v.descuentoMonto;
+            ventasConDescuento++;
+        } else {
+            totalBruto += v.totalCobrado;
         }
+
+        // Efectivo y tarjeta se calculan con totalCobrado (ya descontado, que es lo real)
+        if (v.metodo === 'Efectivo') {
+            totalEfectivo += v.totalCobrado;
+        } else if (v.metodo === 'Tarjeta') {
+            totalTarjeta += v.totalCobrado;
+            totalComision += (v.comisionMP || 0);
+        } else if (v.metodo === 'Mixto') {
+            totalEfectivo += (v.efectivo || 0);
+            totalTarjeta += (v.tarjeta || 0);
+            totalComision += (v.comisionMP || 0);
+        }
+    });
+
+    let totalNeto = totalEfectivo + totalTarjeta; // Esto debe ser igual a totalBruto - totalDescuentos
+    let depositoReal = totalTarjeta - totalComision;
+
+    // Resumen por producto (a precios originales, sin descuento)
+    let resumenProductos = {};
+    filtro.datos.forEach(v => { v.items.forEach(item => { if (!resumenProductos[item.n]) resumenProductos[item.n] = { cantidad: 0, subtotal: 0 }; resumenProductos[item.n].cantidad += item.c; resumenProductos[item.n].subtotal += (item.c * item.p); }); });
+
+    let filas = '';
+    Object.keys(resumenProductos).sort().forEach(n => { let d = resumenProductos[n]; filas += '<tr><td style="padding:6px 8px;border-bottom:1px solid #eee;">' + n + '</td><td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:center;">' + d.cantidad + '</td><td style="padding:6px 8px;border-bottom:1px solid #eee;text-align:right;font-weight:bold;">$ ' + d.subtotal.toFixed(2) + '</td></tr>'; });
+
+    // Fila de descuentos (solo si hubo)
+    let filaDescuentos = '';
+    if (totalDescuentos > 0) {
+        filaDescuentos =
+            '<tr style="background-color:#FFF3E0;"><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#E65100;">DESCUENTOS EMPLEADOS (' + ventasConDescuento + ' venta' + (ventasConDescuento !== 1 ? 's' : '') + ')</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#E65100;">- $ ' + totalDescuentos.toFixed(2) + '</td></tr>';
+    }
+
+    // Fila de venta bruta (solo si hubo descuentos, para contexto)
+    let filaBruta = '';
+    if (totalDescuentos > 0) {
+        filaBruta =
+            '<tr style="background-color:#F5EFE6;"><td style="padding:8px;font-size:12px;border-bottom:1px solid #D7CCC8;color:#8D6E63;">Venta bruta (antes de descuentos)</td><td style="padding:8px;text-align:right;font-size:12px;border-bottom:1px solid #D7CCC8;color:#8D6E63;">$ ' + totalBruto.toFixed(2) + '</td></tr>';
+    }
+
+    let div = document.createElement('div');
+    div.style.cssText = 'width: 190mm; padding: 10mm; font-family: "DM Sans", Arial, sans-serif; font-size: 11px; color: #3C2415;';
+
+    div.innerHTML =
+        '<div style="text-align:center;border-bottom:3px double #3C2415;padding-bottom:15px;margin-bottom:20px;">' +
+        '<img src="icono.png" style="width:80px;height:80px;border-radius:50%;margin-bottom:10px;" onerror="this.style.display=\'none\'">' +
+        '<h1 style="margin:0;color:#3C2415;font-size:22px;font-family:Cormorant Garamond,serif;">Café Jardín El Virreinal</h1>' +
+        '<p style="margin:5px 0;font-size:12px;color:#8D6E63;">Museo de Arte Virreinal de Taxco</p>' +
+        '<p style="margin:15px 0 5px 0;font-weight:bold;font-size:16px;">' + filtro.titulo + '</p>' +
+        '<p style="margin:0;font-size:12px;">Transacciones: ' + filtro.datos.length + '</p></div>' +
+
+        '<table style="width:100%;border-collapse:collapse;margin-bottom:20px;"><thead><tr style="background-color:#3C2415;color:#FDF8F0;"><th style="padding:8px;text-align:left;width:60%;">Concepto</th><th style="padding:8px;text-align:center;width:15%;">Cant</th><th style="padding:8px;text-align:right;width:25%;">Importe</th></tr></thead><tbody>' + filas + '</tbody></table>' +
+
+        '<table style="width:100%;border-collapse:collapse;margin-top:10px;margin-bottom:20px;">' +
+        '<tr><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;">VENTAS EN EFECTIVO</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#2E7D32;">$ ' + totalEfectivo.toFixed(2) + '</td></tr>' +
+        '<tr><td style="padding:8px;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;">VENTAS CON TARJETA</td><td style="padding:8px;text-align:right;font-size:13px;font-weight:bold;border-bottom:1px solid #D7CCC8;color:#1565C0;">$ ' + totalTarjeta.toFixed(2) + '</td></tr>' +
+        filaDescuentos +
+        filaBruta +
+        '<tr style="background-color:#F5EFE6;"><td style="padding:10px;font-size:16px;font-weight:bold;">TOTAL PERIODO (NETO)</td><td style="padding:10px;text-align:right;font-size:16px;font-weight:bold;">$ ' + totalNeto.toFixed(2) + '</td></tr></table>' +
+
+        '<div style="border:1px solid #1565C0;padding:12px;background-color:#f4f8ff;margin-bottom:20px;border-radius:8px;">' +
+        '<div style="font-weight:bold;margin-bottom:8px;color:#1565C0;font-size:12px;">DETALLE TARJETA (MERCADO PAGO)</div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;"><span>Total cobrado:</span><span>$ ' + totalTarjeta.toFixed(2) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:11px;color:#C62828;"><span>Comisión descontada (' + config.comisionMP + '%):</span><span>- $ ' + totalComision.toFixed(2) + '</span></div>' +
+        '<div style="display:flex;justify-content:space-between;font-size:13px;font-weight:bold;margin-top:8px;border-top:1px solid #ccc;padding-top:8px;color:#1565C0;"><span>A DEPOSITAR A CUENTA:</span><span>$ ' + depositoReal.toFixed(2) + '</span></div></div>' +
+
+        '<div style="border:3px double #3C2415;padding:15px;text-align:center;background-color:#FDF8F0;border-radius:8px;">' +
+        '<div style="font-size:13px;font-weight:bold;">EN CAJA FÍSICA DEBES TENER:</div>' +
+        '<div style="font-size:26px;font-weight:bold;color:#2E7D32;margin:5px 0;">$ ' + totalEfectivo.toFixed(2) + '</div></div>';
+
+    toast('Generando PDF...', 'info');
+    html2pdf().from(div).set({
+        margin: 0, filename: 'Corte_' + tipo + '_' + new Date().toLocaleDateString().replace(/\//g, '-') + '.pdf',
+        image: { type: 'jpeg', quality: 0.98 }, html2canvas: { scale: 2, useCORS: true },
+        jsPDF: { unit: 'mm', format: 'letter', orientation: 'portrait' }
+    }).outputPdf('blob').then(blob => {
+        let file = new File([blob], 'Corte.pdf', { type: 'application/pdf' });
+        if (navigator.canShare && navigator.canShare({ files: [file] })) {
+            navigator.share({ files: [file], title: 'Corte', text: 'Corte ' + tipo }).catch(() => { html2pdf().from(div).save(); toast('PDF descargado', 'ok'); });
+        } else { html2pdf().from(div).save(); toast('PDF descargado', 'ok'); }
+        div.remove();
+    });
+}
 
         /* =============================================
            REPORTE POR VENTAS (NUEVO — transacción por transacción)
